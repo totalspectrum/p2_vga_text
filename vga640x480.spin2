@@ -1,0 +1,152 @@
+CON
+	COLS = 80
+	ROWS = 60
+        FONT_HEIGHT = 8
+	
+DAT
+'
+'
+' Bitmap
+'
+        orgh
+buffer
+	long 0[COLS*ROWS*2]
+'
+' font buffer
+'
+	long
+fontdata
+'	file "unscii-16.bin"
+	file "unscii-8-fantasy.bin"
+
+'=================================================================================================================
+' BELOW HERE IS THE DEMO CODE
+'=================================================================================================================
+democolors
+    long $FF000000, $FFFF0000, $00FF0000, $00FFFF00
+    long $0000FF00, $FF00FF00, $FFFFFF00, $00000000
+    long $7F000000, $007F7F00, $007F0000
+
+VAR
+    long params[40] ' parameters for running the VGA tile driver
+
+OBJ
+    vga: "vga_tile_driver.spin2"
+
+PUB demo | x, y, fgcol, bgcol, ch, grey, col1, col2, idx
+    clkset($010007f8, 160_000_000)  ' 20 MHz crystal * 8
+
+    initparams
+    vga.start(@params)
+    ch := 0
+    longfill(@buffer, 0, 80*30*2)
+    pausems(1000)
+    cls
+
+    repeat y from 0 to ROWS-1
+        grey := y<<3
+        bgcol := (grey<<24) | (grey<<16) | (grey<<8)
+        repeat x from 0 to COLS-1
+          grey := (x & 15)
+	  idx := x / 16
+          col1 := democolors[idx]
+	  col2 := democolors[idx+1]
+	  fgcol := colorblend(col1, col2, (grey<<4) + grey)
+          glyphat(x, y, ch++, fgcol, bgcol)
+    runtext
+
+'
+' calculate ($8000_0000 * a) / (b)
+'
+CON PIXSHIFT = 31
+
+PRI calcscale(a, b) | shiftcnt
+  shiftcnt := PIXSHIFT
+  ' remove factors of 5 (will be pretty common)
+  repeat while 0 == (a // 5) and 0 == (b // 5)
+    a := a / 5
+    b := b / 5
+
+  ' scale a up as much as we can
+  repeat while ((a & $4000_0000) == 0) and shiftcnt > 0
+    a := a << 1
+    shiftcnt--
+  repeat while ((b & 1) == 0) and shiftcnt > 0
+    b := b>>1
+    shiftcnt--
+  return (a / b) << shiftcnt
+      
+'
+' calculate ($8000_0000 * a) / (b)
+'
+PUB initparams | i, pclkscale, pclk, sysclk, x
+  ' calculate clock frequency
+  pclk := 32_000_000 ' pixel clock
+  'pclk := 30_000_000
+  sysclk := clkfreq  ' system clock
+  ' calculate scale := $8000_0000 * pclk / sysclk
+  ' this is equal to pclk / (sysclk / $8000_000)
+  pclkscale := calcscale(pclk, sysclk)
+
+  i := 0
+  params[i++] := @buffer	' screen buffer
+  params[i++] := COLS           ' screen columns
+  params[i++] := ROWS           ' screen rows
+  params[i++] := @fontdata	' font data
+  params[i++] := 8		' font width
+  params[i++] := FONT_HEIGHT    ' font height
+  params[i++] := pclkscale 'fset           ' pixel clock scaling value
+  params[i++] := 16+8           ' horizontal front porch
+  params[i++] := 64             ' hsync pulse
+  params[i++] := 120 - 8        ' horizontal back porch
+  params[i++] := 1              ' vertical front porch
+  params[i++] := 3              ' vertical sync lines
+  params[i++] := 16             ' vertical back porch
+  
+PUB colorblend(a, b, mix)
+  asm
+    setpiv mix
+    blnpix a, b
+  endasm
+  return a
+
+PUB cls
+   longfill(@buffer, 0, COLS*ROWS*2)
+
+PUB glyphat(x, y, ch, fgcol, bgcol) | bufptr
+  bufptr := @buffer
+  bufptr += (y*COLS + x) *8
+  fgcol |= (ch & $FF)
+  long[bufptr] := fgcol
+  bufptr += 4
+  long[bufptr] := bgcol
+
+#include "vga_text_routines.spinh"
+#include "std_text_routines.spinh"
+
+PUB runtext | n
+  pausems(1000)
+  init_terminal
+  n := 0
+  repeat
+    nl
+    str(string("Hello! ", 27, "[BCursor down"))
+    str(string(27, "[31mRed text "))
+    str(string(27, "[1;31mBright Red text"))
+    str(string(27, "[7mInverse "))
+    str(string(27, "[22;31mBold off "))
+    str(string(27, "[0mEffects off "))
+    dec(n)
+    n++
+    
+    nl
+    pausems(2000)
+    str(string(27, "[1;1H"))
+    str(string(27, "[0J"))
+    str(@teststring)
+    pausems(10000)
+
+DAT
+teststring
+  FILE "fluff.ans"
+  long 0

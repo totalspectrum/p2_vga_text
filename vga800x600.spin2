@@ -1,0 +1,125 @@
+''
+'' demo of the vga tile driver at 800x600
+'' using a 15 character high font
+''
+
+CON
+	COLS = 100   ' (8*100 == 800)
+	ROWS = 40    ' (40*15 == 600)
+
+DAT
+'
+'
+' Bitmap
+'
+        orgh
+'
+' font buffer
+'
+	long
+fontdata
+	file "font.bin"
+
+'=================================================================================================================
+' BELOW HERE IS THE DEMO CODE
+'=================================================================================================================
+democolors
+    long $FF000000, $FFFF0000, $00FF0000, $00FFFF00
+    long $0000FF00, $FF00FF00, $FFFFFF00, $00000000
+    long $7F000000, $007F7F00, $007F0000, $FFFF0000
+
+VAR
+    long params[40]
+    long screen[COLS*ROWS*2]
+OBJ
+    vga: "vga_tile_driver.spin2"
+
+PUB demo | x, y, fgcol, bgcol, ch, grey, col1, col2, idx
+    clkset($010007f8, 160_000_000)
+
+    initparams
+    vga.start(@params)
+    ch := 0
+    cls
+    pausems(1000)
+    cls
+
+    ch := 0
+    repeat y from 0 to ROWS-1
+        grey := y<<2
+        bgcol := (grey<<24) | (grey<<16) | (grey<<8)
+        repeat x from 0 to COLS-1
+          grey := (x & 15)
+	  idx := x / 16
+          col1 := democolors[idx]
+	  col2 := democolors[idx+1]
+	  fgcol := colorblend(col1, col2, (grey<<4) + grey)
+          glyphat(x, y, ch++, fgcol, bgcol)
+	  if (ch => 128)
+    	    ch := 0
+    repeat
+
+'
+' calculate ($8000_0000 * a) / (b)
+'
+CON PIXSHIFT = 31
+
+PRI calcscale(a, b) | shiftcnt
+  shiftcnt := PIXSHIFT
+  ' remove factors of 5 (will be pretty common)
+  repeat while 0 == (a // 5) and 0 == (b // 5)
+    a := a / 5
+    b := b / 5
+
+  ' scale a up as much as we can
+  repeat while ((a & $4000_0000) == 0) and shiftcnt > 0
+    a := a << 1
+    shiftcnt--
+  repeat while ((b & 1) == 0) and shiftcnt > 0
+    b := b>>1
+    shiftcnt--
+  return (a / b) << shiftcnt
+      
+PUB initparams | i, pclkscale, pclk, sysclk, x, fontptr
+  ' calculate clock frequency
+  pclk := 40_000_000 ' pixel clock
+  sysclk := clkfreq  ' system clock
+  ' calculate scale := $8000_0000 * pclk / sysclk
+
+  pclkscale := calcscale(pclk, sysclk)
+
+  fontptr := @fontdata
+  fontptr += 256
+
+  i := 0
+  params[i++] := @screen	' screen buffer
+  params[i++] := COLS           ' screen columns
+  params[i++] := ROWS           ' screen rows
+  params[i++] := fontptr	' font data: skip first row
+  params[i++] := 8		' font width
+  params[i++] := 15             ' font height
+  params[i++] := pclkscale 'fset           ' pixel clock scaling value
+  params[i++] := 40           ' horizontal front porch
+  params[i++] := 128             ' hsync pulse
+  params[i++] := 88        ' horizontal back porch
+  params[i++] := 1              ' vertical front porch
+  params[i++] := 4              ' vertical sync lines
+  params[i++] := 23             ' vertical back porch
+  
+PUB colorblend(a, b, mix)
+  asm
+    setpiv mix
+    blnpix a, b
+  endasm
+  return a
+
+PUB cls
+   longfill(@screen, 0, COLS*ROWS*2)
+
+PUB glyphat(x, y, ch, fgcol, bgcol) | bufptr
+  bufptr := @screen
+  bufptr += (y*COLS + x) *8
+  fgcol |= (ch & $FF)
+  long[bufptr] := fgcol
+  bufptr += 4
+  long[bufptr] := bgcol

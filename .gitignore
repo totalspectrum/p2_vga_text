@@ -1,0 +1,6 @@
+*.bin
+*.p2asm
+*~
+*.zip
+makebitmap
+*.binary
