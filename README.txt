@@ -81,3 +81,10 @@ represent Unicode characters 0-255.
 
 The font provided is unscii, a public domain Unicode font, in several
 variants.
+
+CREDITS
+-------
+The unscii font is from http://pelulamu.net/unscii/
+
+The ANSI art is Ansi Love by Rad Man, from
+http://sixteencolors.net/pack/blocktronics_blockalypse/rad-LOVE.ANS.
