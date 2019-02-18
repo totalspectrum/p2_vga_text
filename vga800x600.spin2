@@ -18,7 +18,7 @@ DAT
 '
 	long
 fontdata
-	file "font.bin"
+	file "unscii-16.bin"
 
 '=================================================================================================================
 ' BELOW HERE IS THE DEMO CODE
