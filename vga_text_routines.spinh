@@ -25,7 +25,7 @@ PRI init_terminal
   cls
   curx := cury := 0
   state := STATE_NORMAL
-  screenptr := @buffer
+  screenptr := @screen_buffer
 
 PRI reset_graphics_state
   bgcolor := DEFAULT_BG_COLOR
@@ -133,9 +133,20 @@ PRI handle_csi(c)
       cury := savey
     state := STATE_NORMAL
 
+PUB glyphat(x, y, ch, fgcol, bgcol) | bufptr
+  bufptr := @screen_buffer
+  bufptr += (y*COLS + x) *8
+  fgcol |= (ch & $FF)
+  long[bufptr] := fgcol
+  bufptr += 4
+  long[bufptr] := bgcol
+
+PUB cls
+   longfill(@screen_buffer, 0, COLS*ROWS*2)
+
 ' clear from position a to position b (inclusive)
 PRI clear(a, b) | ptr, cnt
-  ptr := @buffer + a
+  ptr := @screen_buffer + a
   cnt := b-a
   repeat while cnt => 0
     long[ptr] := fgcolor

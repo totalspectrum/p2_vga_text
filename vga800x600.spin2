@@ -1,4 +1,25 @@
 ''
+'' clock frequency settings
+'' for 800x600 we use a 40 MHz pixel clock
+'' which x4 gives a 160 MHz system clock
+'' we can get that by multiplying 20_000_000 by 8
+'' then dividing by 1 again
+CON
+  _XTALFREQ     = 20_000_000                                    ' crystal frequency
+  _XDIV         = 1                                            ' crystal divider to give 1MHz
+  _XMUL         = 8                                          ' crystal / div * mul
+  _XDIVP        = 1                                             ' crystal / div * mul /divp to give _CLKFREQ (1,2,4..30)
+  _XOSC         = %10                                  'OSC    ' %00=OFF, %01=OSC, %10=15pF, %11=30pF
+  _XSEL         = %11                                   'XI+PLL ' %00=rcfast(20+MHz), %01=rcslow(~20KHz), %10=XI(5ms), %11=XI+PLL(10ms)
+  _XPPPP        = ((_XDIVP>>1) + 15) & $F                       ' 1->15, 2->0, 4->1, 6->2...30->14
+  _CLOCKFREQ    = _XTALFREQ / _XDIV * _XMUL / _XDIVP            ' internal clock frequency                
+  _SETFREQ      = 1<<24 + (_XDIV-1)<<18 + (_XMUL-1)<<8 + _XPPPP<<4 + _XOSC<<2  ' %0000_000e_dddddd_mmmmmmmmmm_pppp_cc_00  ' setup  oscillator
+
+  sys_clock_freq = _CLOCKFREQ
+  sys_clock_mode = _SETFREQ
+  pixel_clock_freq = 40_000_000
+
+''
 '' demo of the vga tile driver at 800x600
 '' using a 15 character high font
 ''
@@ -31,11 +52,12 @@ democolors
 VAR
     long params[40]
     long screen[COLS*ROWS*2]
+
 OBJ
     vga: "vga_tile_driver.spin2"
 
 PUB demo | x, y, fgcol, bgcol, ch, grey, col1, col2, idx
-    clkset($010007f8, 160_000_000)
+    clkset(sys_clock_mode, sys_clock_freq)
 
     initparams
     vga.start(@params)
@@ -55,9 +77,9 @@ PUB demo | x, y, fgcol, bgcol, ch, grey, col1, col2, idx
 	  col2 := democolors[idx+1]
 	  fgcol := colorblend(col1, col2, (grey<<4) + grey)
           glyphat(x, y, ch++, fgcol, bgcol)
-	  if (ch => 128)
+	  if (ch => 255)
     	    ch := 0
-    repeat
+    runtext
 
 '
 ' calculate ($8000_0000 * a) / (b)
@@ -82,7 +104,7 @@ PRI calcscale(a, b) | shiftcnt
       
 PUB initparams | i, pclkscale, pclk, sysclk, x, fontptr
   ' calculate clock frequency
-  pclk := 40_000_000 ' pixel clock
+  pclk := pixel_clock_freq
   sysclk := clkfreq  ' system clock
   ' calculate scale := $8000_0000 * pclk / sysclk
 
@@ -113,13 +135,16 @@ PUB colorblend(a, b, mix)
   endasm
   return a
 
-PUB cls
-   longfill(@screen, 0, COLS*ROWS*2)
+#define screen_buffer screen
+#include "vga_text_routines.spinh"
+#include "std_text_routines.spinh"
 
-PUB glyphat(x, y, ch, fgcol, bgcol) | bufptr
-  bufptr := @screen
-  bufptr += (y*COLS + x) *8
-  fgcol |= (ch & $FF)
-  long[bufptr] := fgcol
-  bufptr += 4
-  long[bufptr] := bgcol
+PUB runtext | n
+  pausems(2000)
+  init_terminal
+  n := 0
+  repeat
+    repeat COLS
+      tx(n & $FF)
+      n++
+    pausems(200)

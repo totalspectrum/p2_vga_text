@@ -1,14 +1,12 @@
 ''
 '' clock frequency settings
-'' for 640x480 @ 73 Hz we use a 31.5 MHz pixel clock
-'' which x4 gives a 126 MHz system clock
-'' we can get that by dividing 20_000_000 by 10
-'' then multiplying by 63
-'' then dividing by 1 again
+'' for 640x480 we use a 31.5 MHz pixel clock
+'' and just run the P2 as fast as we can (180 MHz)
+
 CON
   _XTALFREQ     = 20_000_000                                    ' crystal frequency
-  _XDIV         = 10                                            ' crystal divider to give 1MHz
-  _XMUL         = 63                                          ' crystal / div * mul
+  _XDIV         = 1                                            ' crystal divider to give 1MHz
+  _XMUL         = 9                                          ' crystal / div * mul
   _XDIVP        = 1                                             ' crystal / div * mul /divp to give _CLKFREQ (1,2,4..30)
   _XOSC         = %10                                  'OSC    ' %00=OFF, %01=OSC, %10=15pF, %11=30pF
   _XSEL         = %11                                   'XI+PLL ' %00=rcfast(20+MHz), %01=rcslow(~20KHz), %10=XI(5ms), %11=XI+PLL(10ms)
@@ -119,10 +117,10 @@ PUB initparams | i, pclkscale, pclk, sysclk, x
   params[i++] := pclkscale 'fset           ' pixel clock scaling value
   params[i++] := 24             ' horizontal front porch
   params[i++] := 40             ' hsync pulse
-  params[i++] := 128            ' horizontal back porch
+  params[i++] := 128             ' horizontal back porch
   params[i++] := 9             ' vertical front porch
-  params[i++] := 2              ' vertical sync lines
-  params[i++] := 29             ' vertical back porch
+  params[i++] := 3              ' vertical sync lines
+  params[i++] := 28             ' vertical back porch
   
 PUB colorblend(a, b, mix)
   asm
@@ -131,17 +129,7 @@ PUB colorblend(a, b, mix)
   endasm
   return a
 
-PUB cls
-   longfill(@buffer, 0, COLS*ROWS*2)
-
-PUB glyphat(x, y, ch, fgcol, bgcol) | bufptr
-  bufptr := @buffer
-  bufptr += (y*COLS + x) *8
-  fgcol |= (ch & $FF)
-  long[bufptr] := fgcol
-  bufptr += 4
-  long[bufptr] := bgcol
-
+#define screen_buffer buffer
 #include "vga_text_routines.spinh"
 #include "std_text_routines.spinh"
 
