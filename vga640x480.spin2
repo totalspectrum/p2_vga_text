@@ -51,7 +51,7 @@ VAR
     long params[40] ' parameters for running the VGA tile driver
 
 OBJ
-    vga: "vga_tile_driver.spin2"
+    vga: "vga_tile_fast.spin2"
 
 PUB demo | x, y, fgcol, bgcol, ch, grey, col1, col2, idx
     clkset(sys_clock_mode, sys_clock_freq)  ' 20 MHz crystal * 8

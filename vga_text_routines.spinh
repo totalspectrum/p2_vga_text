@@ -137,6 +137,7 @@ PUB glyphat(x, y, ch, fgcol, bgcol) | bufptr
   bufptr := @screen_buffer
   bufptr += (y*COLS + x) *8
   fgcol |= (ch & $FF)
+  bgcol &= $FFFFFF00
   long[bufptr] := fgcol
   bufptr += 4
   long[bufptr] := bgcol

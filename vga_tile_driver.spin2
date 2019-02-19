@@ -122,32 +122,34 @@ if_z	mov	font_line_counter, font_height
 if_z	mov	font_ptr, font_base
 if_z	add	buffer_ptr, stride ' next line
 
-	mov	x, text_cols
 	mov	m_rf, m_rf_orig
+
+	rep	@endchar, text_cols
 
 nextchar
 	' handles 8 pixels at a time
-	' at 40 MHz pixel clock and 160 MHz system clock, we have 4 cycles/pixel or 2 instructions/pixel
+	' at 65 MHz pixel clock and 200 MHz system clock, we have 3 cycles/pixel or 1.5 instructions/pixel
+
 	' so this loop must not be more than 16 instructions
+        ' if we can assume bgcolor has 0 in its low bits, we can just fit
 
 	rflong	fgcolor
 	rflong	bgcolor
 	getbyte char2, fgcolor, #0
-	andn	bgcolor, #$FF
 	andn	fgcolor, #$FF
+	'andn	bgcolor, #$FF ' handle in the glyphat code
 
 	altgb	char2, #font_line	' fetch from font table
 	getbyte	char2
-
 	xcont	m_rf, char2
 	wrlut	bgcolor, lutptr
+
 	add	lutptr, #1
 	wrlut	fgcolor, lutptr
-
 	xor	lutptr, luttoggle
 	xor	m_rf, m_rf_toggle
-	djnz	x, #nextchar
 	'' end of loop
+endchar
 
         djnz    y,#line         'another line?
 
