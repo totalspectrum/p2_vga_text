@@ -47,7 +47,8 @@ vsync_pulse
 	rdlong  vsync_pulse, ptra++
 vback_porch
 	rdlong  vback_porch, ptra++
-
+polarity
+        rdlong  polarity, ptra++
 '
 ' Setup 
 '
@@ -79,13 +80,19 @@ vga_start
 	or 	dacmode_s, mycogid
 	or	dacmode_c, mycogid
 
-        setxfrq fpix_scale       'set transfer frequency to 31.5MHz
+        setxfrq fpix_scale       'set transfer frequency
+
+        ' set up initial polarity
+        test    polarity, #%10 wc
+        drvc    #vsync
+        test    polarity, #1 wc
+        muxc    cmodval, #1
 
         'set up level scaling
         setcy   ##intensity << 24   'r  set colorspace for rgb
         setci   ##intensity << 16   'g
         setcq   ##intensity << 08   'b
-        setcmod #%01_0_000_0        'enable colorspace conversion
+        setcmod cmodval             'enable colorspace conversion
 
         'RJA dacmodes changed for real P2
         wrpin   dacmode_s,#basepin      'enable dac modes in pins 0..3
@@ -96,6 +103,7 @@ vga_start
 	dirh	#basepin + 1
 	dirh	#basepin + 2
 	dirh	#basepin + 3
+
 '
 '
 ' Field loop
@@ -195,6 +203,9 @@ m_rf	     long   $8F000000 {+FONT_WIDTH}     ' 1bpp
 m_rf_orig    long   $8F000000 {+FONT_WIDTH}     ' 1bpp LUT immediate
 m_rf_toggle  long   $00010000
 
+' cmod parameter for level scaling
+cmodval      long  %01_0_000_0
+
 ' we use LUT elements 0,1 and 32,33 to hold the colors, ping-ponging back
 ' between them
 ' we have to use 32,33 because the granularity of changing the streamer
@@ -275,7 +286,3 @@ PUB calcscale(a, b) | shiftcnt
     b := b>>1
     shiftcnt--
   return (a / b) << shiftcnt
-      
-
-
-

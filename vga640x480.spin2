@@ -1,12 +1,12 @@
 ''
 '' clock frequency settings
-'' for 640x480 we use a 31.5 MHz pixel clock
-'' and just run the P2 as fast as we can (180 MHz)
+'' for 640x480 we use a 25 MHz pixel clock
+'' and just run the P2 at 100 MHz
 
 CON
   _XTALFREQ     = 20_000_000                                    ' crystal frequency
   _XDIV         = 1                                            ' crystal divider to give 1MHz
-  _XMUL         = 9                                          ' crystal / div * mul
+  _XMUL         = 5                                          ' crystal / div * mul
   _XDIVP        = 1                                             ' crystal / div * mul /divp to give _CLKFREQ (1,2,4..30)
   _XOSC         = %10                                  'OSC    ' %00=OFF, %01=OSC, %10=15pF, %11=30pF
   _XSEL         = %11                                   'XI+PLL ' %00=rcfast(20+MHz), %01=rcslow(~20KHz), %10=XI(5ms), %11=XI+PLL(10ms)
@@ -16,7 +16,7 @@ CON
 
   sys_clock_freq = _CLOCKFREQ
   sys_clock_mode = _SETFREQ
-  pixel_clock_freq = 31_500_000
+  pixel_clock_freq = 25_000_000
   
 CON
 	COLS = 80
@@ -115,13 +115,14 @@ PUB initparams | i, pclkscale, pclk, sysclk, x
   params[i++] := 8		' font width
   params[i++] := FONT_HEIGHT    ' font height
   params[i++] := pclkscale 'fset           ' pixel clock scaling value
-  params[i++] := 24             ' horizontal front porch
-  params[i++] := 40             ' hsync pulse
-  params[i++] := 128             ' horizontal back porch
-  params[i++] := 9             ' vertical front porch
-  params[i++] := 3              ' vertical sync lines
-  params[i++] := 28             ' vertical back porch
-  
+  params[i++] := 16             ' horizontal front porch
+  params[i++] := 96             ' hsync pulse
+  params[i++] := 48             ' horizontal back porch
+  params[i++] := 10             ' vertical front porch
+  params[i++] := 2              ' vertical sync lines
+  params[i++] := 33             ' vertical back porch
+  params[i++] := %11            ' polarity (1 == negative)
+
 PUB colorblend(a, b, mix)
   asm
     setpiv mix
@@ -134,8 +135,14 @@ PUB colorblend(a, b, mix)
 #include "std_text_routines.spinh"
 
 PUB runtext | n
-  pausems(1000)
+  pausems(4000)
   init_terminal
+
+  str(string(27, "[1;1H"))
+  str(string(27, "[0J"))
+  str(@teststring)
+  pausems(10000)
+
   n := 0
   repeat
     nl
@@ -147,13 +154,8 @@ PUB runtext | n
     str(string(27, "[0mEffects off "))
     dec(n)
     n++
+    pausems(1000)
     
-    nl
-    pausems(2000)
-    str(string(27, "[1;1H"))
-    str(string(27, "[0J"))
-    str(@teststring)
-    pausems(10000)
 
 DAT
 teststring

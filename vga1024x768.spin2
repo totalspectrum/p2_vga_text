@@ -121,6 +121,7 @@ PUB initparams | i, pclkscale, pclk, sysclk, x
   params[i++] := 3             ' vertical front porch
   params[i++] := 6              ' vertical sync lines
   params[i++] := 29             ' vertical back porch
+  params[i++] := %00            ' vertical/horizontal polarity
   
 PUB colorblend(a, b, mix)
   asm
