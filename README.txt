@@ -1,7 +1,7 @@
 VGA TILE DRIVER
-- Revision c: Fixed a bug with vsync polarity
-- Revision b: Added 1028x768 support and polarity
-- Revision a: Started work on ANSI escape codes
+- Revision 0.4: Fixed a bug with vsync polarity
+- Revision 0.3: Added 1028x768 support and polarity
+- Revision 0.2: Started work on ANSI escape codes
 
 This is a simple VGA tile driver. It's still a work in progress.
 
