@@ -1,5 +1,4 @@
 CON
-  BASEPIN = 48
   pixel_clock_freq = 25_000_000
 
   COLS = 80
@@ -22,30 +21,6 @@ VAR
 OBJ
     vga: "vga_tile_driver.spin2"
 
-'
-' calculate ($8000_0000 * a) / (b)
-'
-CON PIXSHIFT = 31
-
-PRI calcscale(a, b) | shiftcnt
-  shiftcnt := PIXSHIFT
-  ' remove factors of 5 (will be pretty common)
-  repeat while 0 == (a // 5) and 0 == (b // 5)
-    a := a / 5
-    b := b / 5
-
-  ' scale a up as much as we can
-  repeat while ((a & $4000_0000) == 0) and shiftcnt > 0
-    a := a << 1
-    shiftcnt--
-  repeat while ((b & 1) == 0) and shiftcnt > 0
-    b := b>>1
-    shiftcnt--
-  return (a / b) << shiftcnt
-      
-'
-' calculate ($8000_0000 * a) / (b)
-'
 PUB start(pinbase) | i, pclkscale, pclk, sysclk, x
   ' calculate clock frequency
   pclk := pixel_clock_freq ' pixel clock

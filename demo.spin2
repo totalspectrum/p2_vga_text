@@ -1,9 +1,14 @@
 ''
 '' clock frequency settings
 '' for 640x480 we use a 25 MHz pixel clock
-'' and just run the P2 at some multiple of that
-'' (200 MHz is a convenient one for many purposes, and
-'' is only a slight overclocking)
+'' for 800x600 we use a 40 MHz pixel clock
+'' for 1024x768 we use a 65 MHz pixel clock
+''
+'' for best results the system clock should be a multiple of
+'' the pixel clock
+''
+'' 200 MHz is a convenient one for many purposes, and
+'' is only a slight overclocking
 ''
 CON
   PINBASE = 48
@@ -30,9 +35,9 @@ democolors
 
 
 OBJ
-   scrn: "vga640x480.spin2"
+'   scrn: "vga640x480.spin2"
 '   scrn: "vga800x600.spin2"
-'   scrn: "vga1024x768.spin2"
+   scrn: "vga1024x768.spin2"
    
 PUB demo | x, y, fgcol, bgcol, ch, grey, col1, col2, idx
     clkset(sys_clock_mode, sys_clock_freq)  ' 20 MHz crystal * 8
