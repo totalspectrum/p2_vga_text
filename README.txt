@@ -88,6 +88,9 @@ variants.
 
 CREDITS
 -------
+The VGA code itself is heavily based on earlier P2 work by Rayman and
+Cluso99, and of course Chip's original VGA driver.
+
 The unscii font is from http://pelulamu.net/unscii/
 
 The ANSI art is Ansi Love by Rad Man, from

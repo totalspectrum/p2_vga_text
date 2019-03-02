@@ -10,8 +10,8 @@ Quick configuration: change basepin to the appropriate base pin for your VGA set
 }}
 
 CON
-   basepin = 48
-   vsync = basepin + 4 ' vsync pin
+'   basepin = 48
+'   vsync = basepin + 4 ' vsync pin
 
   intensity = 80    '0..128
 
@@ -21,6 +21,8 @@ DAT
 
 entry
 	' read parameters
+basepin_val
+	rdlong	basepin_val, ptra++
 buffer_base
         rdlong  buffer_base, ptra++
 text_cols
@@ -81,10 +83,12 @@ vga_start
 	or	dacmode_c, mycogid
 
         setxfrq fpix_scale       'set transfer frequency
-
+	mov	vsync_val, basepin_val
+	add	vsync_val, #4
+	
         ' set up initial polarity
         test    polarity, #%10 wc
-        drvc    #vsync
+        drvc    vsync_val
         test    polarity, #1 wc
         muxc    cmodval, #1
 
@@ -95,15 +99,17 @@ vga_start
         setcmod cmodval             'enable colorspace conversion
 
         'RJA dacmodes changed for real P2
-        wrpin   dacmode_s,#basepin      'enable dac modes in pins 0..3
-        wrpin   dacmode_c,#basepin + 1
-        wrpin   dacmode_c,#basepin + 2
-        wrpin   dacmode_c,#basepin + 3
-	dirh	#basepin + 0
-	dirh	#basepin + 1
-	dirh	#basepin + 2
-	dirh	#basepin + 3
-
+        wrpin   dacmode_s,basepin_val      'enable dac modes in pins 0..3
+	dirh	basepin_val
+	add	basepin_val, #1
+        wrpin   dacmode_c,basepin_val
+	dirh	basepin_val
+	add	basepin_val, #1
+        wrpin   dacmode_c,basepin_val
+	dirh	basepin_val
+	add	basepin_val, #1
+        wrpin   dacmode_c,basepin_val
+	dirh	basepin_val
 '
 '
 ' Field loop
@@ -164,12 +170,12 @@ endchar
         mov	y,vback_porch           'bottom blanks
         call    #blank
 
-        drvnot  #vsync          'sync on
+        drvnot  vsync_val          'sync on
 
         mov 	y,vsync_pulse            'sync blanks
         call    #blank
 
-        drvnot  #vsync          'sync off
+        drvnot  vsync_val          'sync off
 
         jmp     #field                  'loop
 '
@@ -237,7 +243,9 @@ bgcolor res 1
 fgcolor res 1
 font_line_counter
         res 1
-
+vsync_val
+	res 1
+	
 ' space for 256 bytes of font data
 font_line res 64
 
