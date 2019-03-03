@@ -57,8 +57,12 @@ PUB start(pinbase) | i, pclkscale, pclk, sysclk, x, fontptr
   params[i++] := 4              ' vertical sync lines
   params[i++] := 23             ' vertical back porch
   params[i++] := %00            ' vertical/horizontal polarity
-  vga.start(@params)
+  x := vga.start(@params)
   init_terminal
+  return x
+
+PUB stop
+  vga.stop
   
 #include "vga_text_routines.spinh"
 #include "std_text_routines.spinh"

@@ -1,12 +1,14 @@
 VGA TILE DRIVER
+- Revision 0.5: Made the text drivers more independent, created C and
+BASIC demos
 - Revision 0.4: Fixed a bug with vsync polarity
 - Revision 0.3: Added 1028x768 support and polarity
 - Revision 0.2: Started work on ANSI escape codes
 
 This is a simple VGA tile driver. It's still a work in progress.
 
-vga640x480.spin2 is the 640x480 version, supporting 80x30 characters
-vga800x600.spin2 is the 800x600 version, supporting 100x40 characters
+vgatext_640x480.spin2 is the 640x480 version, supporting 80x30 characters
+vgatext_800x600.spin2 is the 800x600 version, supporting 100x40 characters
 
 Tiles must always be 8 pixels wide. Theoretically they can be any
 height, but the demos use 16 pixels (15 for the 800x600, which is
@@ -18,11 +20,18 @@ bytes in memory. This consists of 24 bits foreground color, 8 bits
 of the actual character index, 24 bits of background color, and 8
 unused bits (write 0's for these -- it matters!).
 
+DEMOS
+-----
+The Spin demo (demo.spin2) is the most complete example of how to use
+the libraries. There are also some really simple examples in BASIC
+(basdemo.bas) and C (cdemo.c).
+
 HOW IT WORKS
 ------------
 The actual driver is vga_tile_driver.spin2, which runs in its own COG.
 It reads parameters from a mailbox, which has the following longs in
 order:
+    starting pin for VGA
     character data address
     number of columns (e.g. 80 or 100)
     number of rows (e.g. 30 or 40)
