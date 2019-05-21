@@ -123,6 +123,8 @@ PRI handle_csi(c)
       curx := defaultval(args[1], 1) - 1
     elseif (c == "J")
       clear_in_display(defaultval(args[0], 0))
+    elseif (c == "K")
+      clear_in_line(defaultval(args[0], 0))
     elseif (c == "m")
       set_graphic_rendition(0)
     elseif (c == "s")
@@ -147,7 +149,7 @@ PUB cls
 
 ' clear from position a to position b (inclusive)
 PRI clear(a, b) | ptr, cnt
-  ptr := @screen_buffer + a
+  ptr := @screen_buffer + 8*a
   cnt := b-a
   repeat while cnt => 0
     long[ptr] := fgcolor
@@ -168,6 +170,18 @@ PRI clear_in_display(n) | startpix, endpix
   else
     startpix := COLS*cury + curx
     endpix := COLS*ROWS - 1
+  clear(startpix, endpix)
+
+PRI clear_in_line(n) | startpix, endpix
+  if n==2
+    curx := 0
+    n:=0
+  if n==1
+    startpix := COLS*cury
+    endpix := COLS*cury + curx
+  else
+    startpix := COLS*cury + curx
+    endpix := COLS*(cury+1) - 1
   clear(startpix, endpix)
 
 ' get an argument that's already been set up, return -1 if not valid
@@ -261,7 +275,7 @@ PRI GetArgColor(i) : col, newi | r, g, b, code
       r := colortab[r]
     elseif (r => 232) 
       r := 10 * (r - 232)
-      r +- 8
+      r += 8
       return (r<<24 | r<<16 | r<<8), i
     else
       r := SixColor(r)
