@@ -144,6 +144,19 @@ PUB glyphat(x, y, ch, fgcol, bgcol) | bufptr
   bufptr += 4
   long[bufptr] := bgcol
 
+PUB invertcurchar | bufptr, f, b, ch
+  bufptr := @screen_buffer
+  bufptr += ((cury * COLS) + curx) * 8
+  f := long[bufptr]
+  b := long[bufptr+4]
+  ch := f & $FF
+  f := f & $FFFFFF00
+  if (f == b)
+    f := fgcolor
+    b := bgcolor
+  long[bufptr] := b | ch
+  long[bufptr+4] := f
+  
 PUB cls
    longfill(@screen_buffer, 0, COLS*ROWS*2)
 
