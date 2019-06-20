@@ -10,9 +10,6 @@ Quick configuration: change basepin to the appropriate base pin for your VGA set
 }}
 
 CON
-'   basepin = 48
-'   vsync = basepin + 4 ' vsync pin
-
   intensity = 80    '0..128
 
 
@@ -144,7 +141,7 @@ nextchar
 	' handles 8 pixels at a time
 	' at 65 MHz pixel clock and 200 MHz system clock, we have 3 cycles/pixel or 1.5 instructions/pixel
 
-	' so this loop must not be more than 16 instructions
+	' so this loop must not be more than 12 instructions
         ' if we can assume bgcolor has 0 in its low bits, we can just fit
 
 	rflong	fgcolor
