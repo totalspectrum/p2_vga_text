@@ -1,3 +1,5 @@
+FASTSPIN=/home/ersmith/Parallax/spin2cpp/build/fastspin
+
 zip: vgatile.zip
 
 FONTS=unscii-16.bin unscii-16.bdf unscii-8.bin unscii-8.bdf unscii-8-fantasy.bin unscii-8-fantasy.bdf unscii-8-thin.bin unscii-8-thin.bdf
@@ -14,5 +16,8 @@ vgatile.zip: README.txt $(FONTS) $(DRIVERS) $(DEMOS) makebitmap.c vga.map pictur
 
 %.bdf: %.pcf
 	pcf2bdf -o $@ $<
+
+demo.binary: demo.spin2 vgatext_800x600.spin2 vga_tile_driver.spin2 vga_text_routines.spinh std_text_routines.spinh
+	$(FASTSPIN) -2 -o demo.binary demo.spin2
 
 makebitmap: makebitmap.c
