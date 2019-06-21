@@ -51,9 +51,9 @@ polarity
         rdlong  polarity, ptra++
 
 	' this must be either 8 (for 32 bit color) or 4 (for 8 bit color)
-pixel_size
-	rdlong	pixel_size, ptra++
-	mov	pixel_size, #8	' FIXME	
+bytes_per_char
+	rdlong	bytes_per_char, ptra++
+	mov	bytes_per_char, #8	' FIXME	
 '
 ' Setup 
 '
@@ -65,7 +65,7 @@ vga_start
 	mov	strikethru_line, font_height
 	shr	strikethru_line, #1	' divide height by 2
         mov	stride, text_cols
-        mul     stride, pixel_size
+        mul     stride, bytes_per_char
         mov     stride_chunks, stride
         add     stride_chunks, #63
         shr     stride_chunks, #6 ' divide by 64

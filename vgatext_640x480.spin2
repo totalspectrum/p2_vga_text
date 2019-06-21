@@ -4,6 +4,7 @@ CON
   COLS = 80
   ROWS = 30
   FONT_HEIGHT = 16
+  CELL_SIZE = 8  ' bytes per character: use 4 for 8bpp colors, 8 for 24bpp colors
 	
 DAT
 '
@@ -16,7 +17,7 @@ fontdata
 
 VAR
     long params[40] ' parameters for running the VGA tile driver
-    long screen_buffer[COLS*ROWS*2]
+    long screen_buffer[COLS*ROWS*(CELL_SIZE/2)]
     
 OBJ
     vga: "vga_tile_driver.spin2"
@@ -45,6 +46,8 @@ PUB start(pinbase) | i, pclkscale, pclk, sysclk, x
   params[i++] := 2              ' vertical sync lines
   params[i++] := 33             ' vertical back porch
   params[i++] := %11            ' polarity (1 == negative)
+  params[i++] := CELL_SIZE
+  
   x := vga.start(@params)
   init_terminal
   return x

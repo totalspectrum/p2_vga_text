@@ -13,7 +13,8 @@ CON
   COLS = 100   ' (8*100 == 800)
   ROWS = 40    ' (40*15 == 600)
   FONT_HEIGHT = 15
-	
+  CELL_SIZE = 8  ' bytes per character: use 4 for 8bpp colors, 8 for 24bpp colors
+
 DAT
 '
 ' font buffer
@@ -24,7 +25,7 @@ fontdata
 
 VAR
     long params[40]
-    long screen_buffer[COLS*ROWS*2]
+    long screen_buffer[COLS*ROWS*(CELL_SIZE/2)]
 
 OBJ
     vga: "vga_tile_driver.spin2"
@@ -57,6 +58,7 @@ PUB start(pinbase) | i, pclkscale, pclk, sysclk, x, fontptr
   params[i++] := 4              ' vertical sync lines
   params[i++] := 23             ' vertical back porch
   params[i++] := %00            ' vertical/horizontal polarity
+  params[i++] := CELL_SIZE
   x := vga.start(@params)
   init_terminal
   return x

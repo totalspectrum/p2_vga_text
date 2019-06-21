@@ -9,6 +9,7 @@ CON
   COLS = 128
   ROWS = 48
   FONT_HEIGHT = 16
+  CELL_SIZE = 8  ' bytes per character: use 4 for 8bpp colors, 8 for 24bpp colors
 	
 DAT
 	orgh
@@ -30,7 +31,7 @@ democolors
 
 VAR
     long params[40] ' parameters for running the VGA tile driver
-    long screen_buffer[2*ROWS*COLS]
+    long screen_buffer[ROWS*COLS*(CELL_SIZE/2)]
     
 OBJ
     vga: "vga_tile_driver.spin2"
