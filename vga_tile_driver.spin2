@@ -53,7 +53,6 @@ polarity
 	' this must be either 8 (for 32 bit color) or 4 (for 8 bit color)
 bytes_per_char
 	rdlong	bytes_per_char, ptra++
-	mov	bytes_per_char, #8	' FIXME	
 '
 ' Setup 
 '

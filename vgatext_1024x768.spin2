@@ -31,7 +31,7 @@ democolors
 
 VAR
     long params[40] ' parameters for running the VGA tile driver
-    long screen_buffer[ROWS*COLS*(CELL_SIZE/2)]
+    long screen_buffer[ROWS*COLS*(CELL_SIZE/4)]
     
 OBJ
     vga: "vga_tile_driver.spin2"

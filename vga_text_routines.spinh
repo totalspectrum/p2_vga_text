@@ -14,9 +14,6 @@
 '   fourth is effect mask
 '
 ' 
-#ifndef CELL_SIZE
-#define CELL_SIZE 8
-#endif
 
 CON
   STATE_NORMAL = 0
