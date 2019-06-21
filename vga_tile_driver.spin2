@@ -5,7 +5,8 @@
 
 Runs in its own COG. See README.txt for theory of operation.
 
-Quick configuration: change basepin to the appropriate base pin for your VGA setup.
+Two variants are provided: an 8 bit palette version and a 32 bit
+full color. To select the 8 bit version use #define EIGHT_BIT
 
 }}
 
@@ -48,14 +49,21 @@ vback_porch
 	rdlong  vback_porch, ptra++
 polarity
         rdlong  polarity, ptra++
+
+	' this must be either 8 (for 32 bit color) or 4 (for 8 bit color)
+pixel_size
+	rdlong	pixel_size, ptra++
+	mov	pixel_size, #8	' FIXME	
 '
 ' Setup 
 '
 
 vga_start
         ' calculate things based on parameters
+	mov	char_cnt, text_cols
+	shr	char_cnt, #1		' we process 2 characters at a time
         mov	stride, text_cols
-        mul     stride, #8
+        mul     stride, pixel_size
         mov     stride_chunks, stride
         add     stride_chunks, #63
         shr     stride_chunks, #6 ' divide by 64
@@ -66,8 +74,8 @@ vga_start
         mul     vpixels, font_height
 
 	' copy parameters into settings
-	add	m_rf_orig, font_width
-	mov	m_rf, m_rf_orig
+	add	m_rf_even, font_width
+	add	m_rf_odd, font_width
 	add	m_bs, hfront_porch
 	add	m_sn, hsync_pulse
 	add	m_bv, hback_porch
@@ -133,17 +141,25 @@ if_z	mov	font_line_counter, font_height
 if_z	mov	font_ptr, font_base
 if_z	add	buffer_ptr, stride ' next line
 
-	mov	m_rf, m_rf_orig
-
-	rep	@endchar, text_cols
+	''
+	'' the main loop processes 2 characters (16 pixels) at a time,
+	'' ping-ponging between even and odd
+	''
+	' we use LUT elements 0,1 and 32,33 to hold the colors, ping-ponging back
+	' between them
+	' we have to use 32,33 because the granularity of changing the streamer
+	' LUT pointer is 5 bits
+	
+	rep	@endchar, char_cnt
 
 nextchar
-	' handles 8 pixels at a time
+	' handles 8x2 pixels at a time
 	' at 65 MHz pixel clock and 200 MHz system clock, we have 3 cycles/pixel or 1.5 instructions/pixel
 
-	' so this loop must not be more than 12 instructions
+	' so this loop must not be more than 24 instructions
         ' if we can assume bgcolor has 0 in its low bits, we can just fit
 
+	'' even pixel
 	rflong	fgcolor
 	rflong	bgcolor
 	getbyte char2, fgcolor, #0
@@ -152,13 +168,27 @@ nextchar
 
 	altgb	char2, #font_line	' fetch from font table
 	getbyte	char2
-	xcont	m_rf, char2
-	wrlut	bgcolor, lutptr
+	xcont	m_rf_even, char2
+	wrlut	bgcolor, #0
 
-	add	lutptr, #1
-	wrlut	fgcolor, lutptr
-	xor	lutptr, luttoggle
-	xor	m_rf, m_rf_toggle
+	wrlut	fgcolor, #1
+
+	'' odd pixel
+	'' even pixel
+	rflong	fgcolor
+	rflong	bgcolor
+	getbyte char2, fgcolor, #0
+	andn	fgcolor, #$FF
+	'andn	bgcolor, #$FF ' handle in the glyphat code
+
+	altgb	char2, #font_line	' fetch from font table
+	getbyte	char2
+	xcont	m_rf_odd, char2
+	wrlut	bgcolor, #32
+
+	wrlut	fgcolor, #33
+	
+	'' 
 	'' end of loop
 endchar
 
@@ -202,22 +232,48 @@ m_sn        long    $CF000000 {+HSYNC}        'sync
 m_bv        long    $CF000000 {+HBACK_PORCH}        'before visible
 m_vi        long    $CF000000 {+HPIXELS}       'visible
 
-m_rf	     long   $8F000000 {+FONT_WIDTH}     ' 1bpp
-m_rf_orig    long   $8F000000 {+FONT_WIDTH}     ' 1bpp LUT immediate
-m_rf_toggle  long   $00010000
+m_rf_even    long   $8F000000 {+FONT_WIDTH}     ' 1bpp
+m_rf_odd     long   $8F010000 {+FONT_WIDTH}     ' 1bpp LUT immediate
 
 ' cmod parameter for level scaling
 cmodval      long  %01_0_000_0
 
-' we use LUT elements 0,1 and 32,33 to hold the colors, ping-ponging back
-' between them
-' we have to use 32,33 because the granularity of changing the streamer
-' LUT pointer is 5 bits
 
-lutptr	     long $00
-luttoggle    long $21
-
-
+	     ' standard ANSI 256 color palette
+color_palette
+	long	$00000000, $80000000, $00800000, $80800000, $00008000, $80008000, $00808000, $c0c0c000
+	long	$80808000, $ff000000, $00ff0000, $ffff0000, $0000ff00, $ff00ff00, $00ffff00, $ffffff00
+	long	$00000000, $00000100, $00000200, $00000300, $00000400, $00000500, $00010000, $00010100
+	long	$00010200, $00010300, $00010400, $00010500, $00020000, $00020100, $00020200, $00020300
+	long	$00020400, $00020500, $00030000, $00030100, $00030200, $00030300, $00030400, $00030500
+	long	$00040000, $00040100, $00040200, $00040300, $00040400, $00040500, $00050000, $00050100
+	long	$00050200, $00050300, $00050400, $00050500, $01000000, $01000100, $01000200, $01000300
+	long	$01000400, $01000500, $01010000, $01010100, $01010200, $01010300, $01010400, $01010500
+	long	$01020000, $01020100, $01020200, $01020300, $01020400, $01020500, $01030000, $01030100
+	long	$01030200, $01030300, $01030400, $01030500, $01040000, $01040100, $01040200, $01040300
+	long	$01040400, $01040500, $01050000, $01050100, $01050200, $01050300, $01050400, $01050500
+	long	$02000000, $02000100, $02000200, $02000300, $02000400, $02000500, $02010000, $02010100
+	long	$02010200, $02010300, $02010400, $02010500, $02020000, $02020100, $02020200, $02020300
+	long	$02020400, $02020500, $02030000, $02030100, $02030200, $02030300, $02030400, $02030500
+	long	$02040000, $02040100, $02040200, $02040300, $02040400, $02040500, $02050000, $02050100
+	long	$02050200, $02050300, $02050400, $02050500, $03000000, $03000100, $03000200, $03000300
+	long	$03000400, $03000500, $03010000, $03010100, $03010200, $03010300, $03010400, $03010500
+	long	$03020000, $03020100, $03020200, $03020300, $03020400, $03020500, $03030000, $03030100
+	long	$03030200, $03030300, $03030400, $03030500, $03040000, $03040100, $03040200, $03040300
+	long	$03040400, $03040500, $03050000, $03050100, $03050200, $03050300, $03050400, $03050500
+	long	$04000000, $04000100, $04000200, $04000300, $04000400, $04000500, $04010000, $04010100
+	long	$04010200, $04010300, $04010400, $04010500, $04020000, $04020100, $04020200, $04020300
+	long	$04020400, $04020500, $04030000, $04030100, $04030200, $04030300, $04030400, $04030500
+	long	$04040000, $04040100, $04040200, $04040300, $04040400, $04040500, $04050000, $04050100
+	long	$04050200, $04050300, $04050400, $04050500, $05000000, $05000100, $05000200, $05000300
+	long	$05000400, $05000500, $05010000, $05010100, $05010200, $05010300, $05010400, $05010500
+	long	$05020000, $05020100, $05020200, $05020300, $05020400, $05020500, $05030000, $05030100
+	long	$05030200, $05030300, $05030400, $05030500, $05040000, $05040100, $05040200, $05040300
+	long	$05040400, $05040500, $05050000, $05050100, $05050200, $05050300, $05050400, $05050500
+	long	$08080800, $12121200, $1c1c1c00, $26262600, $30303000, $3a3a3a00, $44444400, $4e4e4e00
+	long	$58585800, $62626200, $6c6c6c00, $76767600, $80808000, $8a8a8a00, $94949400, $9e9e9e00
+	long	$a8a8a800, $b2b2b200, $bcbcbc00, $c6c6c600, $d0d0d000, $dadada00, $e4e4e400, $eeeeee00
+	
 ' values calculated from parameters
 stride
         res 1   ' bytes per line
@@ -242,12 +298,12 @@ font_line_counter
         res 1
 vsync_val
 	res 1
-	
+char_cnt
+	res 1
 ' space for 256 bytes of font data
 font_line res 64
 
-
-	fit 496         ' make sure it all fits in COG
+	fit $1f0         ' make sure it all fits in COG
 
 '******************************************************************
 '* Spin interfaces
