@@ -125,7 +125,11 @@ field
 	mov	buffer_ptr, buffer_base
 	mov	font_ptr, font_base
 	mov	font_line_counter, font_height
-
+	add	field_count, #1
+	test	field_count, #32 wz
+  if_z	mov	field_effects, #$ff
+  if_nz mov	field_effects, #$0f
+  
         mov     y,vpixels          'set visible line
 line    
         call    #hsync          'do horizontal sync; also loads up next font line
@@ -141,6 +145,12 @@ if_z	mov	font_line_counter, font_height
 if_z	mov	font_ptr, font_base
 if_z	add	buffer_ptr, stride ' next line
 
+	'' check for effects on this line
+	mov	line_effects, #$11
+	cmp	font_line_counter, #1 wz
+if_z	or	line_effects, #$22
+	and	line_effects, field_effects
+	
 	''
 	'' the main loop processes 2 characters (16 pixels) at a time,
 	'' ping-ponging between even and odd
@@ -162,30 +172,34 @@ nextchar
 	'' even pixel
 	rflong	fgcolor
 	rflong	bgcolor
-	getbyte char2, fgcolor, #0
+	getbyte curchar, fgcolor, #0
+	test	bgcolor, line_effects wz
+	
 	andn	fgcolor, #$FF
-	'andn	bgcolor, #$FF ' handle in the glyphat code
+	andn	bgcolor, #$FF
+	altgb	curchar, #font_line	' fetch from font table
+	getbyte	curchar
 
-	altgb	char2, #font_line	' fetch from font table
-	getbyte	char2
-	xcont	m_rf_even, char2
+  if_nz or	curchar, #$ff		' if effect mask active add a line
+	xcont	m_rf_even, curchar
 	wrlut	bgcolor, #0
-
 	wrlut	fgcolor, #1
 
 	'' odd pixel
 	'' even pixel
 	rflong	fgcolor
 	rflong	bgcolor
-	getbyte char2, fgcolor, #0
+	getbyte curchar, fgcolor, #0
+	test	bgcolor, line_effects wz
+	
 	andn	fgcolor, #$FF
-	'andn	bgcolor, #$FF ' handle in the glyphat code
-
-	altgb	char2, #font_line	' fetch from font table
-	getbyte	char2
-	xcont	m_rf_odd, char2
+	andn	bgcolor, #$FF ' handle in the glyphat code
+	altgb	curchar, #font_line	' fetch from font table
+	getbyte	curchar
+	
+  if_nz or	curchar, #$ff		' if effect mask active add a line
+	xcont	m_rf_odd, curchar
 	wrlut	bgcolor, #32
-
 	wrlut	fgcolor, #33
 	
 	'' 
@@ -218,8 +232,8 @@ hsync       xcont   m_bs,#0         'horizontal sync
 	xcont m_bv, #0
 	setq	#63		' read 64 longs = 256 bytes from font table
 	rdlong	font_line, font_ptr
-	add	font_ptr, #256
-	ret
+  _ret_	add	font_ptr, #256
+
 '
 '
 ' Initialized data
@@ -238,6 +252,25 @@ m_rf_odd     long   $8F010000 {+FONT_WIDTH}     ' 1bpp LUT immediate
 ' cmod parameter for level scaling
 cmodval      long  %01_0_000_0
 
+' active character effects for this line
+' these bits have the following meanings:
+'    01 = hide (show background color)
+'    02 = underline
+'    04 = strikethrough
+'    08 = reserved
+'    10 = blinking hide
+'    20 = blinking underline
+'    40 = blinking strikethrough
+'    80 = reserved
+
+line_effects	long 0
+
+' active effects for this field; the blinking ones will be turned off
+' on half of the fields
+field_effects   long 0
+
+' count of elapsed fields, used for blinking
+field_count	long	0
 
 	     ' standard ANSI 256 color palette
 color_palette
@@ -290,7 +323,8 @@ font_ptr
 '
 x       res 1
 y       res 1
-char2	res 1
+curchar res 1
+cureff	res 1
 mycogid res 1
 bgcolor res 1
 fgcolor res 1

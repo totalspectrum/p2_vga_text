@@ -135,11 +135,22 @@ PRI handle_csi(c)
       cury := savey
     state := STATE_NORMAL
 
-PUB glyphat(x, y, ch, fgcol, bgcol) | bufptr
+'
+' possible effects:
+' $01 = solid mask
+' $02 = underline
+' $04 = strikethrough
+' $08 = reserved
+' $10 = blinking mask
+' $20 = blinking underline
+' $40 = blinking strikethrough
+' $80 = reserved
+
+PUB glyphat(x, y, ch, fgcol, bgcol, effect=0) | bufptr
   bufptr := @screen_buffer
   bufptr += (y*COLS + x) *8
   fgcol |= (ch & $FF)
-  bgcol &= $FFFFFF00
+  bgcol |= (effect & $FF)
   long[bufptr] := fgcol
   bufptr += 4
   long[bufptr] := bgcol

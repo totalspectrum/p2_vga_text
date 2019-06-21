@@ -56,7 +56,7 @@ PUB demo | x, y, fgcol, bgcol, ch, grey, col1, col2, idx
           col1 := democolors[idx]
 	  col2 := democolors[idx+1]
 	  fgcol := colorblend(col1, col2, (grey<<4) + grey)
-          scrn.glyphat(x, y, ch++, fgcol, bgcol)
+          scrn.glyphat(x, y, ch++, fgcol, bgcol, $20)
     pausems(10000)
     runtext
 
