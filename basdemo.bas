@@ -28,6 +28,9 @@ vga.start(VGA_BASE_PIN)
 '' hook it up to the BASIC print system
 open SendRecvDevice(@vga.tx, nil, @vga.stop) as #2
 
+x = (vga.cols-10) / 2
+y = (vga.rows/2)
+
 
 esc$ = chr$(27) + "["
 gotoxy(x, y)
@@ -41,13 +44,17 @@ print #2, esc$; 10; "DLeft";
 gotoxy(x, y)
 print #2, esc$; 20; "CRight";
 
+gotoxy(0, y + 12)
+print #2, "A number of special effects are available, such as:"
+print #2, esc$; "4m"; "underscore"; esc$; "0m"; ", ";
+print #2, esc$; "9m"; "strikethrough"; esc$; "0m"; ", ";
+print #2, esc$; "5m"; "blinking"; esc$; "0m"; ", or ";
+print #2, esc$; "7m"; "inverted"; esc$; "0m"; " text"
+print #2, esc$; "4;5m"; "or even combinations"; esc$; "0m"
 '' and finish
 do
 loop
 
 sub gotoxy(x, y)
-  x = (vga.cols-10) / 2
-  y = (vga.rows/2)
-
   print #2, esc$; y; ";"; x; "H";
 end sub

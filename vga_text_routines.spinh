@@ -1,3 +1,23 @@
+'
+' utility routines for VGA text
+'
+' CELL_SIZE is the size of each character cell in bytes, and
+' may be either 8 or 4:
+' if 8, then each character has 2 longs:
+'   first long is $RRGGBBcc, where RRGGBB is the fgcolor, cc is the character
+'   second long is $RRGGBBxx, where RRGGBB is the bgcolor, xx is the effect mask
+'
+' if 4, then each character has 4 bytes:
+'   first is foreground color (1 byte index into ANSI LUT)
+'   second is background color (1 byte index into ANSI LUT)
+'   third is character
+'   fourth is effect mask
+'
+' 
+#ifndef CELL_SIZE
+#define CELL_SIZE 8
+#endif
+
 CON
   STATE_NORMAL = 0
   STATE_ESCAPE = 1
@@ -40,8 +60,8 @@ PRI reset_graphics_state
   char_effects := 0
   
 PRI scrollup
-  bytemove(screenptr, screenptr + 8*COLS, 8*(ROWS-1)*COLS)
-  bytefill(screenptr + 8*(ROWS-1)*COLS, 0, 8*COLS)
+  bytemove(screenptr, screenptr + CELL_SIZE*COLS, CELL_SIZE*(ROWS-1)*COLS)
+  bytefill(screenptr + CELL_SIZE*(ROWS-1)*COLS, 0, CELL_SIZE*COLS)
   
 PRI checkposition
   if curx => COLS
@@ -54,7 +74,7 @@ PRI checkposition
     cury := ROWS-1
   elseif cury < 0
     cury := 0
-    
+
 PUB tx(c) | fg, bg
    if (state == STATE_NORMAL)
       if (c == 8) ' backspace
@@ -96,10 +116,6 @@ PRI defaultval(arg, v)
   
 ' handle ANSI control sequences
 PRI handle_csi(c)
-{{
-    glyphat(40, 10, c, $ffff0000, $00404000)
-    pausems(1000)
-}}
     if (c => "0" and c =< "9")
       args[argidx] := 10*args[argidx] + (c - "0")
       return
@@ -156,16 +172,25 @@ PRI handle_csi(c)
 '
 PUB glyphat(x, y, ch, fgcol, bgcol, effect=0) | bufptr
   bufptr := @screen_buffer
-  bufptr += (y*COLS + x) *8
-  fgcol |= (ch & $FF)
-  bgcol |= (effect & $FF)
-  long[bufptr] := fgcol
-  bufptr += 4
-  long[bufptr] := bgcol
+  if CELL_SIZE == 8
+    bufptr += (y*COLS + x) * 8
+    fgcol |= (ch & $FF)
+    bgcol |= (effect & $FF)
+    long[bufptr] := fgcol
+    bufptr += 4
+    long[bufptr] := bgcol
+  else
+    fgcol |= (bgcol<<8) | ((ch & $FF)<<16) | ((effect&$FF)<<24)
+    bufptr += (y*COLS + x) * 4
+    long[bufptr] := fgcol
 
-PUB invertcurchar | bufptr, f, b, ch
+PUB invertcurchar | bufptr, f, b, ch, x, y
   bufptr := @screen_buffer
-  bufptr += ((cury * COLS) + curx) * 8
+  ' restrict x to be between 0 and COLS-1
+  x := 0 #> curx <# (COLS-1)
+  y := 0 #> cury <# (ROWS-1)
+  
+  bufptr += ((y * COLS) + x) * 8
   f := long[bufptr]
   b := long[bufptr+4]
   ch := f & $FF
@@ -177,18 +202,27 @@ PUB invertcurchar | bufptr, f, b, ch
   long[bufptr+4] := f
   
 PUB cls
-   longfill(@screen_buffer, 0, COLS*ROWS*2)
+   clear(0, COLS*ROWS-1)
 
 ' clear from position a to position b (inclusive)
-PRI clear(a, b) | ptr, cnt
-  ptr := @screen_buffer + 8*a
+' a and b are in character offsets (so they have to be scaled appropriately)
+
+PRI clear(a, b) | ptr, cnt, temp
+  ptr := @screen_buffer + CELL_SIZE*a
   cnt := b-a
-  repeat while cnt => 0
-    long[ptr] := fgcolor
-    ptr += 4
-    long[ptr] := bgcolor
-    ptr += 4
-    --cnt
+  if (CELL_SIZE == 4)
+    temp := fgcolor | (bgcolor << 8)
+    repeat while cnt => 0
+      long[ptr] := temp
+      ptr += 4
+      --cnt
+  else
+    repeat while cnt => 0
+      long[ptr] := fgcolor
+      ptr += 4
+      long[ptr] := bgcolor
+      ptr += 4
+      --cnt
 
 ' clear from cursor to end of display (if n==0) or from start of screen to cursor (n == 1)
 ' n==2 clears whole display and resets cursor to top
@@ -286,12 +320,12 @@ colortab
   long $00000000, $7F000000, $007F0000, $7F7F0000
   long $00007F00, $7F007F00, $007F7F00, $C0C0C000
   long $7F7F7F00, $FF000000, $00FF0000, $FFFF0000
-  long $0000FF00, $FF00FF00, $00FFFF00, $FFFFFFFF
+  long $0000FF00, $FF00FF00, $00FFFF00, $FFFFFF00
 
 ' look up an ANSI color from the color table
 PRI AnsiColor(n) | ptr
   if char_effects & CHAR_BOLD
-    n += 8
+    n |= 8
   ptr := @colortab
   return long[ptr + 4*n]
 
