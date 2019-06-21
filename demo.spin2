@@ -79,6 +79,8 @@ PUB runtext | n
     scrn.str(string(27, "[1;31mBright Red text"))
     scrn.str(string(27, "[7mInverse "))
     scrn.str(string(27, "[22;31mBold off "))
+    scrn.str(string(27, "[4mUnderline", 27, "[24m"))
+    scrn.str(string(27, "[9mStrikethru"))
     scrn.str(string(27, "[0mEffects off "))
     scrn.dec(n)
     n++

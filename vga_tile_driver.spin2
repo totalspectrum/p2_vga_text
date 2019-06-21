@@ -62,6 +62,8 @@ vga_start
         ' calculate things based on parameters
 	mov	char_cnt, text_cols
 	shr	char_cnt, #1		' we process 2 characters at a time
+	mov	strikethru_line, font_height
+	shr	strikethru_line, #1	' divide height by 2
         mov	stride, text_cols
         mul     stride, pixel_size
         mov     stride_chunks, stride
@@ -149,6 +151,10 @@ if_z	add	buffer_ptr, stride ' next line
 	mov	line_effects, #$11
 	cmp	font_line_counter, #1 wz
 if_z	or	line_effects, #$22
+	cmp	font_line_counter, strikethru_line wz
+if_z    or	line_effects, #$44
+
+	'' turn off blink specific stuff
 	and	line_effects, field_effects
 	
 	''
@@ -330,6 +336,8 @@ bgcolor res 1
 fgcolor res 1
 font_line_counter
         res 1
+strikethru_line
+	res 1
 vsync_val
 	res 1
 char_cnt

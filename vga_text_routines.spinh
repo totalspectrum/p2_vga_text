@@ -4,9 +4,16 @@ CON
   STATE_CSI = 2
   MAX_ESC_ARGS = 8
 
-  CHAR_INVERSE = $01
-  CHAR_BOLD = $02
-
+  CHAR_HIDDEN =     $01
+  CHAR_UNDERLINE =  $02
+  CHAR_STRIKETHRU = $04
+  CHAR_BLINK_HIDDEN = $10
+  CHAR_BLINK_UNDERLINE = $20
+  CHAR_BLINK_STRIKETHRU = $40
+  CHAR_BLINK_BG = $80
+  
+  CHAR_INVERSE = $0100
+  CHAR_BOLD = $0200
   DEFAULT_FG_COLOR = $FFFFFF00
   DEFAULT_BG_COLOR = 0
   
@@ -66,7 +73,7 @@ PUB tx(c) | fg, bg
          if char_effects & CHAR_INVERSE
            fg,bg := bg,fg  ' swap
          checkposition
-         glyphat(curx, cury, c, fg, bg)
+         glyphat(curx, cury, c, fg, bg, char_effects & $FF)
          curx++
    elseif (state == STATE_ESCAPE)
       handle_esc(c)
@@ -145,7 +152,8 @@ PRI handle_csi(c)
 ' $20 = blinking underline
 ' $40 = blinking strikethrough
 ' $80 = reserved
-
+' these are stored in the lower 8 bits of the char_effects variable
+'
 PUB glyphat(x, y, ch, fgcol, bgcol, effect=0) | bufptr
   bufptr := @screen_buffer
   bufptr += (y*COLS + x) *8
@@ -232,30 +240,45 @@ PRI set_graphic_rendition(i) | code, a, b
   glyphat(42, 10, a, $ffffff00, $00202000)
   pausems(1000)
 }}
-  if code == 0
-    reset_graphics_state
-  elseif code == 1
-    char_effects |= CHAR_BOLD
-  elseif code == 7
-    char_effects |= CHAR_INVERSE
-  elseif code == 21
-    char_effects &= !CHAR_BOLD
-  elseif code == 22
-    char_effects &= !CHAR_BOLD
-  elseif code == 27
-    char_effects &= !CHAR_INVERSE
-  elseif code => 30 and code =< 37
-    fgcolor := AnsiColor(code - 30)
-  elseif code == 38
-    fgcolor,i := GetArgColor(i)
-  elseif code == 39
-    fgcolor := DEFAULT_FG_COLOR
-  elseif code => 40 and code =< 47
-    bgcolor := AnsiColor(code - 40)
-  elseif code == 48
-    bgcolor,i := GetArgColor(i)
-  elseif code == 49
-    bgcolor := DEFAULT_BG_COLOR
+  case code
+    0:
+      reset_graphics_state
+    1:
+      char_effects |= CHAR_BOLD
+    4:
+      char_effects |= CHAR_UNDERLINE
+    5:
+      char_effects |= CHAR_BLINK_HIDDEN|CHAR_BLINK_BG
+    7:
+      char_effects |= CHAR_INVERSE
+    8:
+      char_effects |= CHAR_HIDDEN
+    9:
+      char_effects |= CHAR_STRIKETHRU
+    21:
+      char_effects &= !CHAR_BOLD
+    22:
+      char_effects &= !CHAR_BOLD
+    24:
+      char_effects &= !CHAR_UNDERLINE    
+    27:
+      char_effects &= !CHAR_INVERSE
+    28:
+      char_effects &= !CHAR_HIDDEN
+    29:
+      char_effects &= !CHAR_STRIKETHRU
+    30..37:
+      fgcolor := AnsiColor(code - 30)
+    38:
+      fgcolor,i := GetArgColor(i)
+    39:
+      fgcolor := DEFAULT_FG_COLOR
+    40..47:
+      bgcolor := AnsiColor(code - 40)
+    48:
+      bgcolor,i := GetArgColor(i)
+    49:
+      bgcolor := DEFAULT_BG_COLOR
   set_graphic_rendition(i)
   
 DAT
