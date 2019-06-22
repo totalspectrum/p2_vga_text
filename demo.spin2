@@ -38,12 +38,17 @@ OBJ
 '   scrn: "vgatext_640x480.spin2"
    scrn: "vgatext_800x600.spin2"
 '   scrn: "vgatext_1024x768.spin2"
+   ser: "spin/SmartSerial"
    
 PUB demo | x, y, fgcol, bgcol, ch, grey, col1, col2, idx
     clkset(sys_clock_mode, sys_clock_freq)  ' 20 MHz crystal * 8
 
     ' start up the VGA driver
     scrn.start(PINBASE)
+
+    ' start up serial for debugging
+    ser.start(63, 62, 0, 230_400)
+    ser.printf("VGA text demo\n")
     
     ch := 0
 
@@ -56,7 +61,7 @@ PUB demo | x, y, fgcol, bgcol, ch, grey, col1, col2, idx
           col1 := democolors[idx]
 	  col2 := democolors[idx+1]
 	  fgcol := colorblend(col1, col2, (grey<<4) + grey)
-          scrn.glyphat(x, y, ch++, fgcol, bgcol, $20)
+          scrn.glyphat(x, y, ch++, fixupcol(fgcol), fixupcol(bgcol), $20)
     pausems(10000)
     runtext
 
@@ -67,6 +72,14 @@ PUB colorblend(a, b, mix)
   endasm
   return a
 
+PUB fixupcol(a) | r, g, b, x
+  b := (a>>8) & $FF
+  g := (a>>16) & $FF
+  r := a>>24
+  x := scrn.getrgbcolor(r, g, b)
+  'ser.printf("fixupcol(%x, %x, %x) -> %x\n", r, g, b, x)
+  return x
+  
 PUB runtext | n
   scrn.str(string(27, "[1;1H"))
   scrn.str(string(27, "[0J"))
