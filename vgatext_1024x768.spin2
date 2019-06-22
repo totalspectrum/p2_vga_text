@@ -60,6 +60,8 @@ PUB start(pinbase) | i, pclkscale, pclk, sysclk, x
   params[i++] := 6              ' vertical sync lines
   params[i++] := 29             ' vertical back porch
   params[i++] := %00            ' vertical/horizontal polarity
+  params[i++] := CELL_SIZE
+  
   x := vga.start(@params)
   init_terminal
   return x

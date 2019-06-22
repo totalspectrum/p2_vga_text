@@ -194,6 +194,12 @@ PUB glyphat(x, y, ch, fgcol, bgcol, effect=0) | bufptr
 PRI setCursorVisible(yesno) | bufptr, b, ch, x, y
   if cursor_visible == yesno
     return yesno
+
+  ' if asking to turn on the cursor, but it is
+  ' disabled, ignore the request
+  if yesno and not cursor_enabled
+    return 0
+    
   ' change cursor state
   cursor_visible := yesno
   
@@ -219,7 +225,7 @@ PRI setCursorVisible(yesno) | bufptr, b, ch, x, y
   byte[bufptr] := x
 
   ' return old cursor state
-  return !yesno
+  return (yesno) ? 0 : 1
 
 PRI concealCursor
   setCursorVisible(0)
