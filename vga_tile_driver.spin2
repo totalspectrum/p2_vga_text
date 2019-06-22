@@ -114,13 +114,16 @@ fgcolor
         test    polarity, #%10 wc
         drvc    vsync_val
         test    polarity, #1 wc
-        muxc    cmodval, #1
-
+	' NOTE: the setcmod instruction puts its argument in the D field (bits 9-17)
+	' so to set the low bit of the argument, we need to set bit 9 of the instruction
+        bitc    cmodval, #9		' set bit for cmodval
+	
         'set up level scaling
         setcy   ##intensity << 24   'r  set colorspace for rgb
         setci   ##intensity << 16   'g
         setcq   ##intensity << 08   'b
-        setcmod cmodval             'enable colorspace conversion
+cmodval
+	setcmod #%01_0_000_0             'enable colorspace conversion; note low bit is set above
 
         'RJA dacmodes changed for real P2
         wrpin   dacmode_s,basepin_val      'enable dac modes in pins 0..3
@@ -168,7 +171,7 @@ if_z	mov	font_ptr, font_base
 if_z	add	buffer_ptr, stride ' next line
 
 	'' check for effects on this line
-	mov	line_effects, #$11
+	mov	line_effects, #$91
 	cmp	font_line_counter, #1 wz
 if_z	or	line_effects, #$22
 	cmp	font_line_counter, strikethru_line wz
@@ -244,7 +247,7 @@ next_8bppchar
 	rfbyte	fgcolor
 	rfbyte	bgcolor
 	rfbyte	curchar
-	rfbyte	cureff wc
+	rfbyte	cureff
 
 	' do table lookup on colors
 	alts	fgcolor, #color_Palette
@@ -254,8 +257,9 @@ next_8bppchar
 	
 	altgb	curchar, #font_line	' fetch from font table
 	getbyte	curchar
-	test	cureff, line_effects wz	
-
+	and	cureff, line_effects wz	
+	test	cureff, #$80 wc
+	
   if_nz	muxnc	curchar, #$ff		' if effect mask active add a line
 	xcont	m_rf_even, curchar
 	wrlut	bgcolor, #0
@@ -265,7 +269,7 @@ next_8bppchar
 	rfbyte	fgcolor
 	rfbyte	bgcolor
 	rfbyte	curchar
-	rfbyte	cureff wc
+	rfbyte	cureff
 
 	' do table lookup on colors
 	alts	fgcolor, #color_Palette
@@ -275,7 +279,8 @@ next_8bppchar
 	
 	altgb	curchar, #font_line	' fetch from font table
 	getbyte	curchar
-	test	cureff, line_effects wz	
+	and	cureff, line_effects wz	
+	test	cureff, #$80 wc
 	
   if_nz muxnc	curchar, #$ff		' if effect mask active add a line
 	xcont	m_rf_odd, curchar
@@ -332,19 +337,16 @@ m_vi        long    $CF000000 {+HPIXELS}       'visible
 m_rf_even    long   $8F000000 {+FONT_WIDTH}     ' 1bpp
 m_rf_odd     long   $8F010000 {+FONT_WIDTH}     ' 1bpp LUT immediate
 
-' cmod parameter for level scaling
-cmodval      long  %01_0_000_0
-
 ' active character effects for this line
 ' these bits have the following meanings:
-'    01 = hide (show background color)
+'    01 = hide (show all fgground color)
 '    02 = underline
 '    04 = strikethrough
 '    08 = reserved
 '    10 = blinking hide
 '    20 = blinking underline
 '    40 = blinking strikethrough
-'    80 = reserved
+'    80 = if hidden, use bgcolor instead of fgcolor
 
 line_effects	long 0
 

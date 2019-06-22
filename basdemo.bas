@@ -50,7 +50,7 @@ print #2, esc$; "4m"; "underscore"; esc$; "0m"; ", ";
 print #2, esc$; "9m"; "strikethrough"; esc$; "0m"; ", ";
 print #2, esc$; "5m"; "blinking"; esc$; "0m"; ", or ";
 print #2, esc$; "7m"; "inverted"; esc$; "0m"; " text"
-print #2, esc$; "4;5m"; "or even combinations"; esc$; "0m"
+print #2, esc$; "9;5m"; "or even combinations"; esc$; "0m"
 '' and finish
 do
 loop
