@@ -6,7 +6,8 @@
 Runs in its own COG. See README.txt for theory of operation.
 
 Two variants are provided: an 8 bit palette version and a 32 bit
-full color. To select the 8 bit version use #define EIGHT_BIT
+full color. To select the 8 bit version pass "4" (4 bytes per pixel)
+for the bytes_per_char parameter; for 32 bit pass "8"
 
 }}
 
@@ -49,35 +50,52 @@ vback_porch
 	rdlong  vback_porch, ptra++
 polarity
         rdlong  polarity, ptra++
-
 	' this must be either 8 (for 32 bit color) or 4 (for 8 bit color)
 bytes_per_char
 	rdlong	bytes_per_char, ptra++
 '
 ' Setup 
 '
+' this code can be overwritten once we are going
+'
 
 vga_start
         ' calculate things based on parameters
+char_cnt
 	mov	char_cnt, text_cols
+strikethru_line
 	shr	char_cnt, #1		' we process 2 characters at a time
+vsync_val
 	mov	strikethru_line, font_height
+stride
 	shr	strikethru_line, #1	' divide height by 2
+stride_chunks
         mov	stride, text_cols
+hpixels
         mul     stride, bytes_per_char
+vpixels
         mov     stride_chunks, stride
+buffer_ptr
         add     stride_chunks, #63
+font_ptr
         shr     stride_chunks, #6 ' divide by 64
-
+mycogid
         mov     hpixels, text_cols
+font_line_counter
         mul     hpixels, font_width
+x
         mov     vpixels, text_rows
+y
         mul     vpixels, font_height
 
 	' copy parameters into settings
+curchar
 	add	m_rf_even, font_width
+cureff
 	add	m_rf_odd, font_width
+bgcolor
 	add	m_bs, hfront_porch
+fgcolor
 	add	m_sn, hsync_pulse
 	add	m_bv, hback_porch
 	add	m_vi, hpixels
@@ -116,6 +134,9 @@ vga_start
 	add	basepin_val, #1
         wrpin   dacmode_c,basepin_val
 	dirh	basepin_val
+
+	' change bytes_per_char into a flag: 0 means 8bpp, non-zero means 32bpp color
+	sub	 bytes_per_char, #4
 '
 '
 ' Field loop
@@ -155,7 +176,7 @@ if_z    or	line_effects, #$44
 
 	'' turn off blink specific stuff
 	and	line_effects, field_effects
-	
+
 	''
 	'' the main loop processes 2 characters (16 pixels) at a time,
 	'' ping-ponging between even and odd
@@ -165,14 +186,13 @@ if_z    or	line_effects, #$44
 	' we have to use 32,33 because the granularity of changing the streamer
 	' LUT pointer is 5 bits
 	
-	rep	@endchar, char_cnt
-
-nextchar
+	tjz	bytes_per_char, #do_byte_loop
+	
+	rep	@end_32bppchar, char_cnt
+next_32bppchar
 	' handles 8x2 pixels at a time
 	' at 65 MHz pixel clock and 200 MHz system clock, we have 3 cycles/pixel or 1.5 instructions/pixel
-
 	' so this loop must not be more than 24 instructions
-        ' if we can assume bgcolor has 0 in its low bits, we can just fit
 
 	'' even pixel
 	rflong	fgcolor
@@ -208,10 +228,66 @@ nextchar
 	
 	'' 
 	'' end of loop
-endchar
+end_32bppchar
+        djnz    y,#line         'another line?
+	jmp	#end_of_line
 
+do_byte_loop
+
+	rep	@end_8bppchar, char_cnt
+next_8bppchar
+	' handles 8x2 pixels at a time
+	' at 65 MHz pixel clock and 200 MHz system clock, we have 3 cycles/pixel or 1.5 instructions/pixel
+	' so this loop must not be more than 24 instructions
+
+	'' even pixel
+	rfbyte	fgcolor
+	rfbyte	bgcolor
+	rfbyte	curchar
+	rfbyte	cureff wc
+
+	' do table lookup on colors
+	alts	fgcolor, #color_Palette
+	mov	fgcolor, 0-0
+	alts	bgcolor, #color_Palette
+	mov	bgcolor, 0-0
+	
+	altgb	curchar, #font_line	' fetch from font table
+	getbyte	curchar
+	test	cureff, line_effects wz	
+
+  if_nz	muxnc	curchar, #$ff		' if effect mask active add a line
+	xcont	m_rf_even, curchar
+	wrlut	bgcolor, #0
+	wrlut	fgcolor, #1
+
+	'' odd pixel
+	rfbyte	fgcolor
+	rfbyte	bgcolor
+	rfbyte	curchar
+	rfbyte	cureff wc
+
+	' do table lookup on colors
+	alts	fgcolor, #color_Palette
+	mov	fgcolor, 0-0
+	alts	bgcolor, #color_Palette
+	mov	bgcolor, 0-0
+	
+	altgb	curchar, #font_line	' fetch from font table
+	getbyte	curchar
+	test	cureff, line_effects wz	
+	
+  if_nz muxnc	curchar, #$ff		' if effect mask active add a line
+	xcont	m_rf_odd, curchar
+	wrlut	bgcolor, #32
+	wrlut	fgcolor, #33
+	
+	'' 
+	'' end of loop
+end_8bppchar
         djnz    y,#line         'another line?
 
+end_of_line
         mov	y,vback_porch           'bottom blanks
         call    #blank
 
@@ -223,6 +299,9 @@ endchar
         drvnot  vsync_val          'sync off
 
         jmp     #field                  'loop
+
+	'' 8bpp character loop
+	
 '
 '
 ' Subroutines
@@ -311,35 +390,7 @@ color_palette
 	long	$58585800, $62626200, $6c6c6c00, $76767600, $80808000, $8a8a8a00, $94949400, $9e9e9e00
 	long	$a8a8a800, $b2b2b200, $bcbcbc00, $c6c6c600, $d0d0d000, $dadada00, $e4e4e400, $eeeeee00
 	
-' values calculated from parameters
-stride
-        res 1   ' bytes per line
-stride_chunks
-        res 1   ' rdfast chunks per line
-hpixels
-        res 1
-vpixels
-        res 1
-buffer_ptr
-        res 1
-font_ptr
-        res 1
-'
-x       res 1
-y       res 1
-curchar res 1
-cureff	res 1
-mycogid res 1
-bgcolor res 1
-fgcolor res 1
-font_line_counter
-        res 1
-strikethru_line
-	res 1
-vsync_val
-	res 1
-char_cnt
-	res 1
+
 ' space for 256 bytes of font data
 font_line res 64
 
