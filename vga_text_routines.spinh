@@ -43,10 +43,17 @@ VAR
   long args[MAX_ESC_ARGS]
   long argidx
   long char_effects
+  byte cursor_visible
+  byte cursor_enabled
+  byte cursor_effect
+  byte saved_cursor_data
   
 PRI init_terminal
   reset_graphics_state
   cls
+  cursor_visible := 0
+  cursor_enabled := 1
+  cursor_effect := $10  ' blinking mask; use $20 for blinking underline
   curx := cury := 0
   state := STATE_NORMAL
   screenptr := @screen_buffer
@@ -73,6 +80,7 @@ PRI checkposition
     cury := 0
 
 PUB tx(c) | fg, bg
+   concealCursor
    if (state == STATE_NORMAL)
       if (c == 8) ' backspace
          --curx
@@ -96,7 +104,9 @@ PUB tx(c) | fg, bg
       handle_esc(c)
    elseif (state == STATE_CSI)
       handle_csi(c)
-
+   revealCursor
+   return 1
+   
 PRI handle_esc(c) | i
   if (c == "[")
     repeat i from 0 to MAX_ESC_ARGS-1
@@ -181,27 +191,50 @@ PUB glyphat(x, y, ch, fgcol, bgcol, effect=0) | bufptr
     bufptr += (y*COLS + x) * 4
     long[bufptr] := fgcol
 
-PUB invertcurchar | bufptr, f, b, ch, x, y
+PRI setCursorVisible(yesno) | bufptr, b, ch, x, y
+  if cursor_visible == yesno
+    return yesno
+  ' change cursor state
+  cursor_visible := yesno
+  
   bufptr := @screen_buffer
   ' restrict x to be between 0 and COLS-1
-  x := 0 #> curx <# (COLS-1)
-  y := 0 #> cury <# (ROWS-1)
+  x := curx
+  y := cury
+  x := 0 #> x <# (COLS-1)
+  y := 0 #> y <# (ROWS-1)
   
   bufptr += ((y * COLS) + x) * CELL_SIZE
   if CELL_SIZE == 8
-    f := long[bufptr]
-    b := long[bufptr+4]
-    ch := f & $FF
-    f := f & $FFFFFF00
-    x := b & $FF
-    b := b & $FFFFFF00
-    long[bufptr] := b | ch
-    long[bufptr+4] := f | x
+    bufptr += 4
   else
-    f := byte[bufptr]
-    b := byte[bufptr+1]
-    byte[bufptr] := b
-    byte[bufptr+1] := f
+    bufptr += 3
+  x := byte[bufptr]
+  if cursor_visible
+    saved_cursor_data := x
+    x |= cursor_effect
+    x &= $7f  ' turn off bg color blink
+  else
+    x := saved_cursor_data
+  byte[bufptr] := x
+
+  ' return old cursor state
+  return !yesno
+
+PRI concealCursor
+  setCursorVisible(0)
+
+PRI revealCursor
+  setCursorVisible(cursor_enabled)
+  
+'' globals: force cursor on or off
+PUB showCursor
+  cursor_enabled := 1
+  setCursorVisible(cursor_enabled)
+  
+PUB hideCursor
+  cursor_enabled := 0
+  setCursorVisible(0)
 
 PUB cls
    clear(0, COLS*ROWS-1)
