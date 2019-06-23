@@ -65,7 +65,7 @@ PRI reset_graphics_state
   
 PRI scrollup
   bytemove(screenptr, screenptr + CELL_SIZE*COLS, CELL_SIZE*(ROWS-1)*COLS)
-  bytefill(screenptr + CELL_SIZE*(ROWS-1)*COLS, 0, CELL_SIZE*COLS)
+  clear(COLS*(ROWS-1), COLS*ROWS-1)
   
 PRI checkposition
   if curx => COLS
