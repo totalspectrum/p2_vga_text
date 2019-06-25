@@ -18,7 +18,9 @@
 CON
   STATE_NORMAL = 0
   STATE_ESCAPE = 1
-  STATE_CSI = 2
+  STATE_START_CSI = 2
+  STATE_IN_CSI = 3
+  STATE_IN_PRIV = 4
   MAX_ESC_ARGS = 8
 
   CHAR_HIDDEN =     $01
@@ -102,8 +104,12 @@ PUB tx(c) | fg, bg
          curx++
    elseif (state == STATE_ESCAPE)
       handle_esc(c)
-   elseif (state == STATE_CSI)
+   elseif (state == STATE_START_CSI)
+      handle_csi_start(c)
+   elseif (state == STATE_IN_CSI)
       handle_csi(c)
+   elseif (state == STATE_IN_PRIV)
+      handle_priv(c)
    revealCursor
    return 1
    
@@ -112,7 +118,7 @@ PRI handle_esc(c) | i
     repeat i from 0 to MAX_ESC_ARGS-1
       args[i] := 0
     argidx := 0
-    state := STATE_CSI
+    state := STATE_START_CSI
   elseif (c == "c")
     init_terminal
   else
@@ -120,7 +126,16 @@ PRI handle_esc(c) | i
 
 PRI defaultval(arg, v)
   return (arg) ? arg : v
-  
+
+' first character of control sequence
+' if it is '?' it's a private control sequence
+PRI handle_csi_start(c)
+  if c == "?"
+    state := STATE_IN_PRIV
+  else
+    state := STATE_IN_CSI
+    handle_csi(c)
+    
 ' handle ANSI control sequences
 PRI handle_csi(c)
     if (c => "0" and c =< "9")
@@ -165,7 +180,26 @@ PRI handle_csi(c)
       cury := savey
     state := STATE_NORMAL
 
-'
+' handle private escape sequence
+PRI handle_priv(c) | a
+    if (c => "0" and c =< "9")
+      args[argidx] := 10*args[argidx] + (c - "0")
+      return
+    argidx++
+    if argidx == MAX_ESC_ARGS
+      --argidx
+    if (c == ";")
+      return
+    if (c == "h")
+      a := defaultval(args[0], 1)
+      if a == 25
+        cursor_enabled := 1
+    elseif (c == "l")
+      a := defaultval(args[0], 1)
+      if a == 25
+        cursor_enabled := 0
+    
+'  
 ' possible effects:
 ' $01 = solid mask
 ' $02 = underline

@@ -247,7 +247,7 @@ next_8bppchar
 	rfbyte	fgcolor
 	rfbyte	bgcolor
 	rfbyte	curchar
-	rfbyte	cureff
+	rfbyte	cureff wc
 
 	' do table lookup on colors
 	alts	fgcolor, #color_Palette
@@ -258,7 +258,7 @@ next_8bppchar
 	altgb	curchar, #font_line	' fetch from font table
 	getbyte	curchar
 	and	cureff, line_effects wz	
-	test	cureff, #$80 wc
+'	test	cureff, #$80 wc
 	
   if_nz	muxnc	curchar, #$ff		' if effect mask active add a line
 	xcont	m_rf_even, curchar
@@ -269,7 +269,7 @@ next_8bppchar
 	rfbyte	fgcolor
 	rfbyte	bgcolor
 	rfbyte	curchar
-	rfbyte	cureff
+	rfbyte	cureff wc
 
 	' do table lookup on colors
 	alts	fgcolor, #color_Palette
@@ -280,7 +280,7 @@ next_8bppchar
 	altgb	curchar, #font_line	' fetch from font table
 	getbyte	curchar
 	and	cureff, line_effects wz	
-	test	cureff, #$80 wc
+'	test	cureff, #$80 wc
 	
   if_nz muxnc	curchar, #$ff		' if effect mask active add a line
 	xcont	m_rf_odd, curchar

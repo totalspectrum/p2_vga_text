@@ -21,16 +21,16 @@ struct __using("vgatext_1024x768.spin2") vga;
 #define vga_str(s) vga.str(s)
 #define vga_start(pin) vga.start(pin)
 #else
-#include "gcc/p2es_clock.h"
-#include "gcc/vgatext_1024x768.h"
+#include "p2es_clock.h"
+#include "vgatext.h"
 
-vgatext_1024x768 vga;
-#define vga_rows VGATEXT_1024X768_ROWS
-#define vga_cols VGATEXT_1024X768_COLS
-#define vga_start(pin) vgatext_1024x768_start(&vga, pin)
-#define vga_tx(c) vgatext_1024x768_tx(&vga, c)
-#define vga_dec(c) vgatext_1024x768_dec(&vga, c)
-#define vga_str(s) vgatext_1024x768_str(&vga, s)
+vgatext vga;
+#define vga_rows VGATEXT_ROWS
+#define vga_cols VGATEXT_COLS
+#define vga_start(pin) vgatext_start(&vga, pin)
+#define vga_tx(c) vgatext_tx(&vga, c)
+#define vga_dec(c) vgatext_dec(&vga, c)
+#define vga_str(s) vgatext_str(&vga, s)
 #endif
 
 #define ESC 27
