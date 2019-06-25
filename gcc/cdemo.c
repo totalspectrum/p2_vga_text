@@ -8,17 +8,21 @@
 // in _SETFREQ and _CLOCKFREQ respectively
 //
 #define P2_TARGET_MHZ 200
+#include <stdio.h>
 #include <string.h>
 
+extern void sleep(int);
+
 // include the Spin object
-#ifdef __FLEXC__NOT__
+#ifdef __FLEXC__
 #include <sys/p2es_clock.h>
-struct __using("vgatext.spin2") vga;
+struct __using("vgatext_1024x768.spin2") vga;
 #define vga_rows vga.rows
 #define vga_cols vga.cols
 #define vga_tx(c) vga.tx(c)
 #define vga_dec(c) vga.dec(c)
 #define vga_str(s) vga.str(s)
+#define vga_start(pin) vga.start(pin)
 #else
 #include "p2es_clock.h"
 #include "vgatext.h"
@@ -67,19 +71,23 @@ static void center(const char *msg) {
     vga_str(msg);
 }
 
-#ifdef __GNUC__
-static void clkset(unsigned mode, unsigned freq)
-{
-}
-#endif
 
 // main routine
 void main()
 {
     int i;
+    int r;
+    
+    sleep(1);
+    printf("start\n");
+    sleep(1);
+    
     clkset(_SETFREQ, _CLOCKFREQ);
-    vga_start(VGA_BASEPIN);
-
+    sleep(1);
+    printf("done clock setting\n");
+    r = vga_start(VGA_BASEPIN);
+    printf("vga_start returned %d\n", r);
+    
     starline();
     for (i = 1; i < vga_rows-1; i++) {
         blankline();
