@@ -198,7 +198,8 @@ PRI handle_priv(c) | a
       a := defaultval(args[0], 1)
       if a == 25
         cursor_enabled := 0
-    
+    state := STATE_NORMAL
+
 '  
 ' possible effects:
 ' $01 = solid mask
@@ -225,7 +226,7 @@ PUB glyphat(x, y, ch, fgcol, bgcol, effect=0) | bufptr
     bufptr += (y*COLS + x) * 4
     long[bufptr] := fgcol
 
-PRI setCursorVisible(yesno) | bufptr, b, ch, x, y
+PRI setCursorVisible(yesno) | bufptr, x, y
   if cursor_visible == yesno
     return yesno
 
@@ -337,7 +338,7 @@ PRI hexdig(i)
      return i + "0"
    return (i-10) + "A"
 
-PRI set_graphic_rendition(i) | code, a, b
+PRI set_graphic_rendition(i) | code
   if i > argidx
     return
   code := fetcharg(i++)
