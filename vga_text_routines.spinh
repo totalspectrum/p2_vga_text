@@ -45,6 +45,7 @@ VAR
   long args[MAX_ESC_ARGS]
   long argidx
   long char_effects
+  long scroll_first, scroll_last
   byte cursor_visible
   byte cursor_enabled
   byte cursor_effect
@@ -58,16 +59,35 @@ PRI init_terminal
   cursor_effect := $10  ' blinking mask; use $20 for blinking underline
   curx := cury := 0
   state := STATE_NORMAL
-  screenptr := @screen_buffer
+  scroll_first := 0
+  scroll_last:= ROWS-1
 
 PRI reset_graphics_state
   bgcolor := 0
   fgcolor := (CELL_SIZE == 8) ? $FFFFFF00 : 7
   char_effects := 0
+
+PRI copy_line(dest, src) | linelen
+  linelen := CELL_SIZE*COLS
+  dest := @screen_buffer + dest*linelen
+  src := @screen_buffer + src*linelen
+  bytemove(dest, src, linelen)
   
-PRI scrollup
-  bytemove(screenptr, screenptr + CELL_SIZE*COLS, CELL_SIZE*(ROWS-1)*COLS)
-  clear(COLS*(ROWS-1), COLS*ROWS-1)
+PRI scroll_up | last, i
+  i := scroll_first
+  last := scroll_last
+  repeat while i < last
+    copy_line(i, i+1)
+    i := i+1
+  clear(COLS*last, COLS*(last+1) - 1)
+  
+PRI scroll_down | first, i
+  i := scroll_last
+  first := scroll_first
+  repeat while i > first
+    copy_line(i, i-1)
+    i := i-1
+  clear(COLS*first, COLS*(first+1)-1)
   
 PRI checkposition
   if curx => COLS
@@ -75,11 +95,11 @@ PRI checkposition
     cury++
   elseif curx < 0
     curx := 0
-  if cury => ROWS
-    scrollup
-    cury := ROWS-1
-  elseif cury < 0
-    cury := 0
+  if cury > scroll_last
+    scroll_up
+    cury := scroll_last
+  elseif cury < scroll_first
+    cury := scroll_first
 
 PUB tx(c) | fg, bg
    concealCursor
@@ -119,6 +139,10 @@ PRI handle_esc(c) | i
       args[i] := 0
     argidx := 0
     state := STATE_START_CSI
+  elseif (c == "D")
+    scroll_down
+  elseif (c == "M")
+    scroll_up
   elseif (c == "c")
     init_terminal
   else
@@ -170,6 +194,7 @@ PRI handle_csi(c)
       clear_in_display(defaultval(args[0], 0))
     elseif (c == "K")
       clear_in_line(defaultval(args[0], 0))
+      
     elseif (c == "m")
       set_graphic_rendition(0)
     elseif (c == "s")
