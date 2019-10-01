@@ -88,40 +88,43 @@ PRI scroll_down | first, i
     copy_line(i, i-1)
     i := i-1
   clear(COLS*first, COLS*(first+1)-1)
-  
-PRI checkposition
-  if curx => COLS
-    curx := 0
-    cury++
-  elseif curx < 0
-    curx := 0
-  if cury > scroll_last
-    scroll_up
-    cury := scroll_last
-  elseif cury < scroll_first
-    cury := scroll_first
 
+PRI BOUND(low, x, high)
+  return (low #> x) <# high
+  
+PUB set_position(x, y)
+  curx := BOUND(0, x, COLS-1)
+  cury := BOUND(0, y, ROWS-1)
+  
 PUB tx(c) | fg, bg
    concealCursor
    if (state == STATE_NORMAL)
       if (c == 8) ' backspace
-         --curx
+         set_position(curx-1, cury)
       elseif (c == 10) ' line feed
-         cury++
+         if cury == scroll_last
+	   scroll_up
+	 else
+           cury++
       elseif (c == 13) ' carriage return
          curx := 0
       elseif (c == 20) ' tab
-         curx := (curx + 8) & ~7
+         set_position((curx + 8) & ~7, cury)
       elseif (c == 27)
          state := STATE_ESCAPE
       else
          fg := fgcolor
          bg := bgcolor
-         if char_effects & CHAR_INVERSE
+         if char_effects & CHAR_INVERSEaa
            fg,bg := bg,fg  ' swap
-         checkposition
-         glyphat(curx, cury, c, fg, bg, char_effects & $FF)
+         glyprphat(curx, cury, c, fg, bg, char_effects & $FF)
          curx++
+	 if curx == COLS
+	   curx := 0
+	   if cury == scroll_last
+	     scroll_up
+	   else
+	     cury++
    elseif (state == STATE_ESCAPE)
       handle_esc(c)
    elseif (state == STATE_START_CSI)
@@ -140,9 +143,15 @@ PRI handle_esc(c) | i
     argidx := 0
     state := STATE_START_CSI
   elseif (c == "D")
-    scroll_down
+    if cury == scroll_last
+      scroll_up
+    else
+      cury++
   elseif (c == "M")
-    scroll_up
+    if cury == scroll_first
+      scroll_down
+    else
+      --cury
   elseif (c == "c")
     init_terminal
   else
@@ -193,16 +202,22 @@ PRI handle_csi(c)
     elseif (c == "J")
       clear_in_display(defaultval(args[0], 0))
     elseif (c == "K")
-      clear_in_line(defaultval(args[0], 0))
-      
+      clear_in_line(defaultval(args[0], 0))      
     elseif (c == "m")
       set_graphic_rendition(0)
+    elseif (c == "r")
+      scroll_first := defaultval(args[0], 1) - 1
+      scroll_last := defaultval(args[1], ROWS) - 1
+      scroll_first := BOUND(0, scroll_first, ROWS-1)
+      scroll_last := BOUND(scroll_first, scroll_last, ROWS-1)
+      curx := cury := 0
     elseif (c == "s")
       savex := curx
       savey := cury
     elseif (c == "u")
       curx := savex
       cury := savey
+    set_position(curx, cury) ' sanity check
     state := STATE_NORMAL
 
 ' handle private escape sequence

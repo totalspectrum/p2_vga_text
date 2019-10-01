@@ -97,5 +97,5 @@ PUB runtext | n
     scrn.str(string(27, "[0mEffects off "))
     scrn.dec(n)
     n++
-    pausems(1000)
+    pausems(100)
     
