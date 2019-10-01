@@ -43,12 +43,13 @@ OBJ
 PUB demo | x, y, fgcol, bgcol, ch, grey, col1, col2, idx
     clkset(sys_clock_mode, sys_clock_freq)  ' 20 MHz crystal * 8
 
-    ' start up the VGA driver
-    scrn.start(PINBASE)
-
     ' start up serial for debugging
     ser.start(63, 62, 0, 230_400)
     ser.printf("VGA text demo\n")
+
+    ' start up the VGA driver
+    scrn.start(PINBASE)
+    ser.printf("screen started\n")
     
     ch := 0
 
