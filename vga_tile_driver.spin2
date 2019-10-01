@@ -329,13 +329,13 @@ hsync       xcont   m_bs,#0         'horizontal sync
 dacmode_s       long    %0000_0000_000_1011000000000_01_00000_0         'hsync is 123-ohm, 3.3V
 dacmode_c       long    %0000_0000_000_1011100000000_01_00000_0         'R/G/B are 75-ohm, 2.0V
 
-m_bs        long    $CF000000 {+HFRONT_PORCH}        'before sync
-m_sn        long    $CF000000 {+HSYNC}        'sync
-m_bv        long    $CF000000 {+HBACK_PORCH}        'before visible
-m_vi        long    $CF000000 {+HPIXELS}       'visible
+m_bs        long    $7F010000 {+HFRONT_PORCH}        'before sync
+m_sn        long    $7F010000 {+HSYNC}        'sync
+m_bv        long    $7F010000 {+HBACK_PORCH}        'before visible
+m_vi        long    $7F010000 {+HPIXELS}       'visible
 
-m_rf_even    long   $8F000000 {+FONT_WIDTH}     ' 1bpp
-m_rf_odd     long   $8F010000 {+FONT_WIDTH}     ' 1bpp LUT immediate
+m_rf_even    long   $0F000000 {+FONT_WIDTH}     ' 1bpp
+m_rf_odd     long   $0F010000 {+FONT_WIDTH}     ' 1bpp LUT immediate
 
 ' active character effects for this line
 ' these bits have the following meanings:
@@ -398,17 +398,73 @@ font_line res 64
 
 	fit $1f0         ' make sure it all fits in COG
 
+DAT
+	orgh
+	' table used to check hardware revision
+	' in rev A (the original silicon) setq + rdlong pa, ptra[1] with ptra holding
+	'  hw_table_base will put 1 into pa (as it should)
+	' in rev B (revised silicon) it will put 2 into pa; arguably a bug, but it was
+	'  a side effect of allowing setq + rdlong pa, ptra++
+
+hw_table_base
+	long 2, 1, 0
+	
 '******************************************************************
 '* Spin interfaces
 '******************************************************************
 
 VAR
   long mycog
+  long hw_rev
+  
+PUB start(params) | ptr, tmp
+  hw_rev := check_hw_rev
 
-PUB start(params)
+  if hw_rev == 1 
+      ptr := @m_bs
+      tmp := $CF000000
+      long[ptr][0] := tmp
+      long[ptr][1] := tmp
+      long[ptr][2] := tmp
+      long[ptr][3] := tmp
+      ptr := @m_rf_even
+      long[ptr][0] := $8f000000
+      long[ptr][1] := $8f010000
+  else
+      ptr := @m_bs
+      tmp := $7f010000
+      long[ptr][0] := tmp
+      long[ptr][1] := tmp
+      long[ptr][2] := tmp
+      long[ptr][3] := tmp
+      ptr := @m_rf_even
+      long[ptr][0] := $0f000000
+      long[ptr][1] := $0f010000
+
   mycog := cognew(@entry, params) + 1
   return mycog
 
+'
+' check the hardware revision
+' return 1 for original silicon, 2 for new silicon
+' the difference is in how setq+rdlong works for ptra offsets;
+' ptra++ is applied the appropriate number of times in rev 2 silicon
+'
+
+PRI check_hw_rev | r, tmp
+  r := @hw_table_base
+  asm
+    mov  tmp, ptrb
+    mov  ptrb, r
+    setq #1
+    rdlong pa, ptrb++
+    subr   r, ptrb	' r := ptrb - r
+    shr	   r, #2 wz
+if_z mov r, #1
+    mov ptrb, tmp
+  endasm
+  return r
+  
 PUB stop
   if mycog
     cogstop(mycog-1)
