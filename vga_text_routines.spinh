@@ -115,9 +115,9 @@ PUB tx(c) | fg, bg
       else
          fg := fgcolor
          bg := bgcolor
-         if char_effects & CHAR_INVERSEaa
+         if char_effects & CHAR_INVERSE
            fg,bg := bg,fg  ' swap
-         glyprphat(curx, cury, c, fg, bg, char_effects & $FF)
+         glyphat(curx, cury, c, fg, bg, char_effects & $FF)
          curx++
 	 if curx == COLS
 	   curx := 0
