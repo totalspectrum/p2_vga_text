@@ -399,15 +399,23 @@ font_line res 64
 	fit $1f0         ' make sure it all fits in COG
 
 DAT
-	orgh
-	' table used to check hardware revision
-	' in rev A (the original silicon) setq + rdlong pa, ptra[1] with ptra holding
-	'  hw_table_base will put 1 into pa (as it should)
-	' in rev B (revised silicon) it will put 2 into pa; arguably a bug, but it was
-	'  a side effect of allowing setq + rdlong pa, ptra++
-
-hw_table_base
-	long 2, 1, 0
+	org	0
+	' code used to check hardware revision
+	' in rev A (the original silicon) setq + rdlong pa, ptrb++ 
+	'  increments ptrb only once
+	' in rev B (revised silicon) it will increment ptrb appropriately
+        '
+hwcheck
+	mov	pb, ptrb
+	setq	#1
+	rdlong	$1e0, ptrb++
+	subr	pb, ptrb
+	shr	pb, #2 wz
+  if_z	mov	pb, #1
+  	wrlong	pb, ptra
+	cogid	pa
+	cogstop	pa
+	
 	
 '******************************************************************
 '* Spin interfaces
@@ -418,7 +426,8 @@ VAR
   long hw_rev
   
 PUB start(params) | ptr, tmp
-  hw_rev := check_hw_rev
+  if hw_rev == 0
+      hw_rev := check_hw_rev
 
   if hw_rev == 1 
       ptr := @m_bs
@@ -451,19 +460,11 @@ PUB start(params) | ptr, tmp
 ' ptra++ is applied the appropriate number of times in rev 2 silicon
 '
 
-PRI check_hw_rev | r, tmp
-  r := @hw_table_base
-  asm
-    mov  tmp, ptrb
-    mov  ptrb, r
-    setq #1
-    rdlong pa, ptrb++
-    subr   r, ptrb	' r := ptrb - r
-    shr	   r, #2 wz
-if_z mov r, #1
-    mov ptrb, tmp
-  endasm
-  return r
+PRI check_hw_rev | tmp
+  tmp := 0
+  cognew(@hwcheck, @tmp)
+  repeat while tmp == 0
+  return tmp
   
 PUB stop
   if mycog
