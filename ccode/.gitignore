@@ -1,6 +1,8 @@
 *.o
 *.spin
 *.spinh
+*.lst
+*.bin
 vgatext.c
 vgatext.h
 vga_tile_driver.c
