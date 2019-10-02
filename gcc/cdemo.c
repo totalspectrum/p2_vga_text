@@ -14,9 +14,11 @@
 extern void sleep(int);
 
 // include the Spin object
+#include <propeller2.h>
+#include "p2es_clock.h"
+
 #ifdef __FLEXC__
-#include <sys/p2es_clock.h>
-struct __using("vgatext_1024x768.spin2") vga;
+struct __using("../vgatext_800x600.spin2") vga;
 #define vga_rows vga.rows
 #define vga_cols vga.cols
 #define vga_tx(c) vga.tx(c)
@@ -24,7 +26,6 @@ struct __using("vgatext_1024x768.spin2") vga;
 #define vga_str(s) vga.str(s)
 #define vga_start(pin) vga.start(pin)
 #else
-#include "p2es_clock.h"
 #include "vgatext.h"
 
 vgatext vga;
@@ -77,19 +78,18 @@ void main()
 {
     int i;
     int r;
-    
-    sleep(1);
-    printf("start\n");
-    sleep(1);
-    
-    clkset(_SETFREQ, _CLOCKFREQ);
-    sleep(1);
+
+    _waitx(20000000);
+    printf("original clock frequency: %u changing to %u\n", _clockfreq(), _CLOCKFREQ);
+
+    _clkset(_SETFREQ+3, _CLOCKFREQ);
+
     printf("done clock setting\n");
     r = vga_start(VGA_BASEPIN);
     printf("vga_start returned %d\n", r);
     
     starline();
-    for (i = 1; i < vga_rows-1; i++) {
+    for (i = 1; i < vga_rows-2; i++) {
         blankline();
     }
     starline();
