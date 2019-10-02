@@ -1,4 +1,6 @@
 VGA TILE DRIVER
+- Revision 0.6: Made C drivers work with riscvp2 and Catalina, and
+added support for new hardware
 - Revision 0.5: Made the text drivers more independent, created C and
 BASIC demos
 - Revision 0.4: Fixed a bug with vsync polarity
@@ -15,16 +17,27 @@ height, but the demos use 16 pixels (15 for the 800x600, which is
 achieved by just ignoring the first row of an 8x16 font). There are
 some 8x8 fonts provided too.
 
-The character data is ROWS*COLS*8 bytes long; each character takes 8
-bytes in memory. This consists of 24 bits foreground color, 8 bits
+The character data is ROWS*COLS*CELL_SIZE bytes long. CELL_SIZE is
+the number of bytes each character takes, and may be either 4 or 8.
+It is passed to the driver in the initial parameter mailbox.
+
+For CELL_SIZE=8, each character takes 8 bytes in memory.
+This consists of 24 bits foreground color, 8 bits
 of the actual character index, 24 bits of background color, and 8
-unused bits (write 0's for these -- it matters!).
+unused bits (write 0's for these -- it matters!). This means that
+foreground and background colors are independent and may be any color
+at all.
+
+For CELL_SIZE=4, the foreground and background colors are only 8 bits
+each, and index into a color palette. For now only the standard ANSI
+color palette is supported.
+
 
 DEMOS
 -----
 The Spin demo (demo.spin2) is the most complete example of how to use
 the libraries. There are also some really simple examples in BASIC
-(basdemo.bas) and C (cdemo.c).
+(basdemo.bas) and C (ccode/cdemo.c).
 
 HOW IT WORKS
 ------------
@@ -45,11 +58,13 @@ order:
     vertical front porch, lines
     vertical sync time, lines
     vertical back porch, lines
-
+    vertical/horizonal polarity (0 for both positive, 3 for both negative)
+    cell size
+    
 The clock scaling factor is the pixel clock divided by the system
 clock, and multiplied by $8000_0000. In practice the driver
 won't work if this ratio is any bigger than 1/3, so for a
-for a 180 MHz P2 system clock the maximum pixel clock is 60 MHz.
+180 MHz P2 system clock the maximum pixel clock is 60 MHz.
 
 The driver works by reading a whole line of the font during blanking,
 then reading the individual character colors (and index). The colors

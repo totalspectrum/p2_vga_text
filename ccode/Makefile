@@ -29,4 +29,7 @@ vgatext.c: ../vgatext_800x600.spin2  ../vga_tile_driver.spin2 ../vga_text_routin
 	$(SPIN2CPP) -I.. --p2 --ccode vgatext.spin
 
 clean:
-	rm -f *.bin *.o vgatext.* vga_tile_driver.*
+	rm -f *.bin *.lst *.p2asm *.o
+
+realclean: clean
+	rm -f vgatext.* vga_tile_driver.*
