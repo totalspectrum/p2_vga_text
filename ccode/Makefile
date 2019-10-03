@@ -17,9 +17,6 @@ catalina: cdemo.c vgatext.c
 flexc: cdemo.c ../vgatext_800x600.spin2 ../vga_tile_driver.spin2
 	$(FASTSPIN) -2 -o flexc.bin cdemo.c
 
-cdemo.c: ../cdemo.c
-	cp $< $@
-
 #vga_tile_driver.c: ../vga_tile_driver.spin 
 #	cp $< $@
 #	$(SPIN2CPP) -I.. --p2 --ccode vga_tile_driver.spin
