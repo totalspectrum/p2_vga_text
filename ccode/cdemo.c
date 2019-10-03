@@ -17,7 +17,8 @@ extern void sleep(int);
 #include <propeller2.h>
 #include "p2es_clock.h"
 
-#ifdef __FLEXC__
+#ifdef USE_SPIN_DIRECTLY
+// FLEXC can do this instead of the code below
 struct __using("../vgatext_800x600.spin2") vga;
 #define vga_rows vga.rows
 #define vga_cols vga.cols
