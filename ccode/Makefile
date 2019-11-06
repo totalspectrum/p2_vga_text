@@ -3,7 +3,7 @@ FASTSPIN=/home/ersmith/Parallax/spin2cpp/build/fastspin
 CATALINA=/home/ersmith/Parallax/catalina/bin/catalina
 
 #GCC=/home/ersmith/Parallax/p2gcc/p2gcc
-GCC=riscv-none-embed-gcc -Os -T riscvp2.ld
+GCC=riscv-none-embed-gcc -Os -T riscvp2_lut.ld -specs=nano.specs
 
 
 default: gcc catalina flexc flexc_spin
