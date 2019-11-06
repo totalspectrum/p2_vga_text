@@ -13,7 +13,10 @@
 '   third is character
 '   fourth is effect mask
 '
-' 
+' if 2, then each character has 2 bytes
+'   first is character
+'   second is: 1 bit effect, 3 bit bg color, 4 bit fg color
+'
 
 CON
   STATE_NORMAL = 0
@@ -254,18 +257,20 @@ PRI handle_priv(c) | a
 '
 PUB glyphat(x, y, ch, fgcol, bgcol, effect=0) | bufptr
   bufptr := @screen_buffer
+  bufptr += (y*COLS + x) * CELL_SIZE
   if CELL_SIZE == 8
-    bufptr += (y*COLS + x) * 8
     fgcol |= (ch & $FF)
     bgcol |= (effect & $FF)
     long[bufptr] := fgcol
     bufptr += 4
     long[bufptr] := bgcol
-  else
+  elseif CELL_SIZE == 4
     fgcol := (fgcol) | (bgcol<<8) | ((ch & $FF)<<16) | ((effect&$FF)<<24)
-    bufptr += (y*COLS + x) * 4
     long[bufptr] := fgcol
-
+  else
+     fgcol := (ch & $FF) | ((bgcol & $7)<<12) | ((fgcol & $F)<<8)
+     word[bufptr] := fgcol
+     
 PRI setCursorVisible(yesno) | bufptr, x, y
   if cursor_visible == yesno
     return yesno
@@ -288,8 +293,10 @@ PRI setCursorVisible(yesno) | bufptr, x, y
   bufptr += ((y * COLS) + x) * CELL_SIZE
   if CELL_SIZE == 8
     bufptr += 4
-  else
+  elseif CELL_SIZE == 4
     bufptr += 3
+  else
+    bufptr += 1
   x := byte[bufptr]
   if cursor_visible
     saved_cursor_data := x
@@ -326,7 +333,13 @@ PUB cls
 PRI clear(a, b) | ptr, cnt, temp
   ptr := @screen_buffer + CELL_SIZE*a
   cnt := b-a
-  if (CELL_SIZE == 4)
+  if (CELL_SIZE == 2)
+    temp := ((fgcolor&$f) | ((bgcolor&$7) << 4))<<8
+    repeat while cnt => 0
+      word[ptr] := temp
+      ptr += 2
+      --cnt
+  elseif (CELL_SIZE == 4)
     temp := fgcolor | (bgcolor << 8)
     repeat while cnt => 0
       long[ptr] := temp
@@ -442,7 +455,7 @@ colortab
 PRI AnsiColor(n) | ptr
   if char_effects & CHAR_BOLD
     n |= 8
-  if CELL_SIZE == 4
+  if CELL_SIZE =< 4
     return n
   ptr := @colortab
   return long[ptr + 4*n]
@@ -460,7 +473,7 @@ PRI SixColor(x) | r, g, b
 
 ' calculate a color value from an r,g,b triple
 PUB getrgbcolor(r, g, b)
-  if CELL_SIZE == 4
+  if CELL_SIZE =< 4
       r := 16 + 36*(r/51) + 6*(g/51) + (b/51)
   else
       r := (r<<24 | g<<16 | b<<8)
@@ -479,7 +492,7 @@ PRI GetArgColor(i) : col, newi | r, g, b, code
      return r,i
   if code == 5
     r := fetcharg(i++) & $FF
-    if CELL_SIZE == 4
+    if CELL_SIZE =< 4
       return r,i
     elseif (r =< 15)
       r := colortab[r]

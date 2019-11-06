@@ -376,8 +376,6 @@ end_32bppchar
 	'' 4 bytes/char
 	org	LINE_HANDLER
 char4_loop
-char2_loop
-char1_loop
 	rep	@end_8bppchar, char_cnt
 next_8bppchar
 	' handles 8x2 pixels at a time
@@ -431,6 +429,72 @@ next_8bppchar
 	'' 
 	'' end of loop
 end_8bppchar
+	ret
+	fit	LINE_HANDLER_END
+
+	''''''''''''''''''''''''''''''''''''''''''''''''''
+	' 2 bytes/char
+	' this consists of an 8 bit character followed by
+	' 8 bit effects; 1 bit blink, 3 bits bg color, 4 bits fg color
+	'
+	org	LINE_HANDLER
+char2_loop
+char1_loop
+	rep	@end_char16, char_cnt
+next_char16
+	' handles 8x2 pixels at a time
+	' at 65 MHz pixel clock and 200 MHz system clock, we have 3 cycles/pixel or 1.5 instructions/pixel
+	' so this loop must not be more than 24 instructions
+
+	'' even pixel
+	rfbyte	curchar
+	rfbyte	cureff wc
+	getnib	fgcolor, cureff, #0
+	getnib	bgcolor, cureff, #1
+	and	bgcolor, #7
+	and	cureff, #$80
+	
+	' do table lookup on colors
+	alts	fgcolor, #color_Palette
+	mov	fgcolor, 0-0
+	alts	bgcolor, #color_Palette
+	mov	bgcolor, 0-0
+	
+	altgb	curchar, #font_line	' fetch from font table
+	getbyte	curchar
+	and	cureff, line_effects wz	
+	
+  if_nz	xor curchar, #$ff		' if effect mask active add a line
+	xcont	m_rf_even, curchar
+	wrlut	bgcolor, #0
+	wrlut	fgcolor, #1
+
+	'' odd pixel
+	rfbyte	curchar
+	rfbyte	cureff wc
+	getnib	fgcolor, cureff, #0
+	getnib	bgcolor, cureff, #1
+	and	bgcolor, #7
+	and	cureff, #$80
+	
+	' do table lookup on colors
+	alts	fgcolor, #color_Palette
+	mov	fgcolor, 0-0
+	alts	bgcolor, #color_Palette
+	mov	bgcolor, 0-0
+	
+	altgb	curchar, #font_line	' fetch from font table
+	getbyte	curchar
+	and	cureff, line_effects wz	
+	
+  if_nz xor	curchar, #$ff		' if effect mask active add a line
+	xcont	m_rf_odd, curchar
+	wrlut	bgcolor, #32
+	wrlut	fgcolor, #33
+	
+	'' 
+	'' end of loop
+end_char16
 	ret
 	fit	LINE_HANDLER_END
 
