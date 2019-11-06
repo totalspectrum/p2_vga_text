@@ -217,7 +217,6 @@ end_of_line
 
         jmp     #field                  'loop
 
-	'' 8bpp character loop
 	
 '
 '

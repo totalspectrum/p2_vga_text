@@ -1,4 +1,6 @@
 VGA TILE DRIVER
+
+- Revision 0.7: Added 2 byte/char and 1 byte/char modes
 - Revision 0.6: Made C drivers work with riscvp2 and Catalina, and
 added support for new hardware
 - Revision 0.5: Made the text drivers more independent, created C and
@@ -7,18 +9,38 @@ BASIC demos
 - Revision 0.3: Added 1028x768 support and polarity
 - Revision 0.2: Started work on ANSI escape codes
 
-This is a simple VGA tile driver. It's still a work in progress.
+This is a simple VGA tile driver that supports standard ANSI escape
+codes. It's still a work in progress.
 
+Files
+-----
 vgatext_640x480.spin2 is the 640x480 version, supporting 80x30 characters
 vgatext_800x600.spin2 is the 800x600 version, supporting 100x40 characters
+vgatext_1024x768.spin2 is the 1024x768 version, supporting 128x48
+characters
 
+vga_tile_driver.spin2 is the low level driver the drives the VGA. It
+takes most of its parameters (including the pins to use) in a
+parameter block that is passed in when it starts up.
+
+vga_text_routines.spinh are the routines for interpreting ANSI escape
+codes and writing data into memory.
+
+std_text_routines.spinh are utility functions to provide things like
+printing strings or numbers in hex and decimal.
+
+In the ccode directory is a Makefile to convert the Spin code to C
+code (usable with most P2 C compilers), and a simple C example.
+
+Operation
+---------
 Tiles must always be 8 pixels wide. Theoretically they can be any
 height, but the demos use 16 pixels (15 for the 800x600, which is
 achieved by just ignoring the first row of an 8x16 font). There are
 some 8x8 fonts provided too.
 
 The character data is ROWS*COLS*CELL_SIZE bytes long. CELL_SIZE is
-the number of bytes each character takes, and may be either 4 or 8.
+the number of bytes each character takes, and may be either 1, 2, 4 or 8.
 It is passed to the driver in the initial parameter mailbox.
 
 For CELL_SIZE=8, each character takes 8 bytes in memory.
@@ -32,6 +54,12 @@ For CELL_SIZE=4, the foreground and background colors are only 8 bits
 each, and index into a color palette. For now only the standard ANSI
 color palette is supported.
 
+For CELL_SIZE=2, the foreground color is 4 bits, background color is 3
+bits, and there is 1 bit for a blinking effect. The character is 8
+bits.
+
+For CELL_SIZE=1 there is 1 bit for blinking and 7 bits for the
+character (so only the standard ASCII characters are supported).
 
 DEMOS
 -----
@@ -59,12 +87,20 @@ order:
     vertical sync time, lines
     vertical back porch, lines
     vertical/horizonal polarity (0 for both positive, 3 for both negative)
-    cell size
+    cell size (8, 4, 2, or 1)
     
 The clock scaling factor is the pixel clock divided by the system
-clock, and multiplied by $8000_0000. In practice the driver
-won't work if this ratio is any bigger than 1/3, so for a
-180 MHz P2 system clock the maximum pixel clock is 60 MHz.
+clock, and multiplied by $8000_0000. The system clock required
+depends on the pixel clock and the CELL_SIZE variable. The monochrome
+driver (CELL_SIZE==1) is the most efficient, requiring that the system
+clock be twice the pixel clock. The full color (CELL_SIZE==8) is next
+most efficient, it works for system clock = 3 * pixel clock; the other
+cell sizes require system clock = 4 * pixel clock. So for example to
+run at 1024x768 60Hz requires a 65 MHz pixel clock, which means a
+system clock of at least 130 MHz for monochrome, 195 MHz for full
+color, and 260 MHz for the other modes. 640x480 should work
+comfortably in pretty much all configurations, unless for some reason
+you have a very low system clock setting.
 
 The driver works by reading a whole line of the font during blanking,
 then reading the individual character colors (and index). The colors
