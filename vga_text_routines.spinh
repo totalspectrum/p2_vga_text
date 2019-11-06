@@ -2,7 +2,7 @@
 ' utility routines for VGA text
 '
 ' CELL_SIZE is the size of each character cell in bytes, and
-' may be either 8 or 4:
+' may be 8, 4, 2, or 1:
 ' if 8, then each character has 2 longs:
 '   first long is $RRGGBBcc, where RRGGBB is the fgcolor, cc is the character
 '   second long is $RRGGBBxx, where RRGGBB is the bgcolor, xx is the effect mask
@@ -17,6 +17,7 @@
 '   first is character
 '   second is: 1 bit effect, 3 bit bg color, 4 bit fg color
 '
+' if 1, then we have monochrome 7 bit characters; the high bit is for blinking
 
 CON
   STATE_NORMAL = 0
@@ -53,13 +54,19 @@ VAR
   byte cursor_enabled
   byte cursor_effect
   byte saved_cursor_data
+  byte cursor_mask
   
 PRI init_terminal
   reset_graphics_state
   cls
   cursor_visible := 0
   cursor_enabled := 1
-  cursor_effect := $10  ' blinking mask; use $20 for blinking underline
+  if CELL_SIZE => 4
+    cursor_effect := $10  ' blinking mask; use $20 for blinking underline
+    cursor_mask := $7f    ' bg color blink disabled for cursor
+  else
+    cursor_effect := $80  ' for 2 byte and 1 byte, only effect is in high bit
+    cursor_mask := $ff
   curx := cury := 0
   state := STATE_NORMAL
   scroll_first := 0
@@ -267,9 +274,11 @@ PUB glyphat(x, y, ch, fgcol, bgcol, effect=0) | bufptr
   elseif CELL_SIZE == 4
     fgcol := (fgcol) | (bgcol<<8) | ((ch & $FF)<<16) | ((effect&$FF)<<24)
     long[bufptr] := fgcol
-  else
+  elseif CELL_SIZE == 2
      fgcol := (ch & $FF) | ((bgcol & $7)<<12) | ((fgcol & $F)<<8)
      word[bufptr] := fgcol
+  else
+     byte[bufptr] := ch & $ff
      
 PRI setCursorVisible(yesno) | bufptr, x, y
   if cursor_visible == yesno
@@ -296,12 +305,12 @@ PRI setCursorVisible(yesno) | bufptr, x, y
   elseif CELL_SIZE == 4
     bufptr += 3
   else
-    bufptr += 1
+    bufptr += (CELL_SIZE-1)
   x := byte[bufptr]
   if cursor_visible
     saved_cursor_data := x
     x |= cursor_effect
-    x &= $7f  ' turn off bg color blink
+    x &= cursor_mask  ' turn off bg color blink
   else
     x := saved_cursor_data
   byte[bufptr] := x
@@ -333,7 +342,12 @@ PUB cls
 PRI clear(a, b) | ptr, cnt, temp
   ptr := @screen_buffer + CELL_SIZE*a
   cnt := b-a
-  if (CELL_SIZE == 2)
+  if (CELL_SIZE == 1)
+    repeat while cnt => 0
+      byte[ptr] := 0
+      ptr += 1
+      --cnt
+  elseif (CELL_SIZE == 2)
     temp := ((fgcolor&$f) | ((bgcolor&$7) << 4))<<8
     repeat while cnt => 0
       word[ptr] := temp
