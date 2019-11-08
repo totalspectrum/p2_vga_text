@@ -1,5 +1,8 @@
 VGA TILE DRIVER
 
+This is a simple VGA tile driver that supports standard ANSI escape
+codes. It's still a work in progress.
+
 - Revision 0.7: Added 2 byte/char and 1 byte/char modes
 - Revision 0.6: Made C drivers work with riscvp2 and Catalina, and
 added support for new hardware
@@ -9,14 +12,14 @@ BASIC demos
 - Revision 0.3: Added 1028x768 support and polarity
 - Revision 0.2: Started work on ANSI escape codes
 
-This is a simple VGA tile driver that supports standard ANSI escape
-codes. It's still a work in progress.
-
 Files
 -----
 vga_tile_driver.spin2 is the low level driver the drives the VGA. It
 takes most of its parameters (including the pins to use) in a
-parameter block that is passed in when it starts up.
+parameter block that is passed in when it starts up. See below for
+details of this parameter block. Since the pin set to use is a
+parameter, you can launch multiple copies of the driver and output to
+multiple VGA monitors.
 
 vga_text_routines.spinh are the routines for interpreting ANSI escape
 codes and writing data into memory.
@@ -99,9 +102,9 @@ The clock scaling factor is the pixel clock divided by the system
 clock, and multiplied by $8000_0000. The system clock required
 depends on the pixel clock and the CELL_SIZE variable. The monochrome
 driver (CELL_SIZE==1) is the most efficient, requiring that the system
-clock be twice the pixel clock. The full color (CELL_SIZE==8) is next
-most efficient, it works for system clock = 3 * pixel clock; the other
-cell sizes require system clock = 4 * pixel clock. So for example to
+clock be at least twice the pixel clock. The full color (CELL_SIZE==8) is next
+most efficient, it works for system clock >= 3 * pixel clock; the other
+cell sizes require system clock >= 4 * pixel clock. So for example to
 run at 1024x768 60Hz requires a 65 MHz pixel clock, which means a
 system clock of at least 130 MHz for monochrome, 195 MHz for full
 color, and 260 MHz for the other modes. 640x480 should work
