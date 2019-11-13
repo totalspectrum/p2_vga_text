@@ -9,6 +9,27 @@ Two variants are provided: an 8 bit palette version and a 32 bit
 full color. To select the 8 bit version pass "4" (4 bytes per pixel)
 for the bytes_per_char parameter; for 32 bit pass "8"
 
+Methods:
+
+start(params)
+  Starts the driver. "params" is a pointer to a block of 32 bit parameters longs:
+  params[0]: base pin to use for the VGA
+  params[1]: pointer to screen buffer
+  params[2]: number of columns
+  params[3]: number of rows
+  params[4]: pointer to font data
+  params[5]: font width (for now, must be 8)
+  params[6]: font height
+  params[7]: pixel clock scaling value ($8000_0000 * pixel_clock / system_clock)
+  params[8]: horizontal front porch
+  params[9]: hsync pulse length
+  params[10]: vertical front porch
+  params[11]: vsync lines
+  params[12]: vertical back porch
+  params[13]: polarity: %00 = both positive, %10 = vertical negative, %01 = horizontal negative
+  params[14]: cell size, i.e. bytes per character (1, 2, 4, or 8)
+  
+  returns 1 + the number of the COG used, or 0 on failure
 }}
 
 CON
@@ -586,20 +607,25 @@ VAR
   long hw_rev
   
 PUB start(params) | ptr, tmp
+
+  ' check what kind of hardware we are using
   if hw_rev == 0
       hw_rev := check_hw_rev
 
-  if hw_rev == 1 
+  if hw_rev == 1
+      ' RevA (old) silicon
+      ' change streamer commands
       ptr := @m_bs
       tmp := $CF000000
-      long[ptr][0] := tmp
-      long[ptr][1] := tmp
-      long[ptr][2] := tmp
-      long[ptr][3] := tmp
+      long[ptr][0] := tmp ' before sync
+      long[ptr][1] := tmp ' sync
+      long[ptr][2] := tmp ' before visible
+      long[ptr][3] := tmp ' visible
       ptr := @m_rf_even
-      long[ptr][0] := $8f000000
-      long[ptr][1] := $8f010000
+      long[ptr][0] := $8f000000 ' even characters
+      long[ptr][1] := $8f010000 ' odd characters (different LUT base)
   else
+      ' new silicon
       ptr := @m_bs
       tmp := $7f010000
       long[ptr][0] := tmp
@@ -607,8 +633,8 @@ PUB start(params) | ptr, tmp
       long[ptr][2] := tmp
       long[ptr][3] := tmp
       ptr := @m_rf_even
-      long[ptr][0] := $0f000000
-      long[ptr][1] := $0f010000
+      long[ptr][0] := $0f000000 ' even characters
+      long[ptr][1] := $0f010000 ' odd characters
 
   mycog := cognew(@entry, params) + 1
   return mycog
