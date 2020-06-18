@@ -183,6 +183,8 @@ cmodval
 	' ptrb still points at @entry; make it point to the code we want to load
 	'
 	encod	bytes_per_char, bytes_per_char		' convert 1, 2, 4, 8 to 0, 1, 2, 3
+	cmp	font_width, #16 wz
+  if_z	or	bytes_per_char, #4			' offset later in table
 	alts	bytes_per_char, #line_offset_table	' look up in line_offset_table
 	add	pb, 0-0				' the offset we want for the code to load
 
@@ -279,7 +281,15 @@ line_offset_table
 	long	@char2_loop - @entry
 	long	@char4_loop - @entry
 	long	@char8_loop - @entry
+	
+	long	@word8_loop - @entry
+	long	@word8_loop - @entry
+	long	@word8_loop - @entry
+	long	@word8_loop - @entry
 
+mask_ffff
+	long	$ffff
+	
 	fit	$1f0
 
 	org	FIELD_HANDLER
@@ -368,7 +378,7 @@ hsync       xcont   m_bs,#0         'horizontal sync
   	fit	FIELD_HANDLER_END
 	
 ''''''''''''''''''''''''''''''''''''''''''''''''''
-'' LUT subroutines
+'' LUT subroutines for 8 pixel wide fonts
 '' all of these should process a whole line of
 '' output
 ''
@@ -606,6 +616,82 @@ next_char8
 end_char8
 	ret
 	fit	LINE_HANDLER_END
+
+
+''''''''''''''''''''''''''''''''''''''''''''''''''
+'' LUT subroutines for 16 pixel wide fonts
+'' all of these should process a whole line of
+'' output
+''
+'' timing: generally speaking we process an even
+'' and odd character (16 pixels) at a time
+'' assuming a 250 MHz system clock this gives us
+'' the following requirements:
+
+'' 640x480 25 MHz pixel clock: 10 cycles/pixel
+''              so 5*16 == 80 instructions
+'' 800x600 40 MHz pixel clock:  6 cycles/pixel
+''              so 3*16 == 48 instructions
+'' 1024x768 65 MHz pixel clock: 3.75 cycles/pixel
+''              or roughly 30 instructions
+''              
+'' for a 160 MHz system clock:
+'' 640x480:  50 instructions
+'' 800x600:  32 instructions
+'' 1024x768: 19 instructions
+''''''''''''''''''''''''''''''''''''''''''''''''''
+
+	'' 8 bytes/character
+	'' 24 instructions
+	
+	org	LINE_HANDLER
+word8_loop
+	rep	@end_32bppword, char_cnt
+next_32bppword
+
+	'' even pixel
+	rflong	fgcolor
+	rflong	bgcolor
+	getbyte curchar, fgcolor, #0
+	test	bgcolor, line_effects wz
+	
+	andn	fgcolor, #$FF
+	andn	bgcolor, #$FF
+	altgw	curchar, #font_line	' fetch from font table
+	getword	curchar
+
+  if_nz or	curchar, mask_ffff	' if effect mask active add a line
+	xcont	m_rf_even, curchar
+	wrlut	bgcolor, #0
+	wrlut	fgcolor, #1
+
+	'' odd pixel
+	rflong	fgcolor
+	rflong	bgcolor
+	getbyte curchar, fgcolor, #0
+	test	bgcolor, line_effects wz
+	
+	andn	fgcolor, #$FF
+	andn	bgcolor, #$FF ' handle in the glyphat code
+	altgw	curchar, #font_line	' fetch from font table
+	getword	curchar
+	
+  if_nz or	curchar, mask_ffff	' if effect mask active add a line
+	xcont	m_rf_odd, curchar
+	wrlut	bgcolor, #32
+	wrlut	fgcolor, #33
+	
+	'' 
+	'' end of loop
+end_32bppword
+	ret
+
+	fit	LINE_HANDLER_END
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+
+''''''''''''''''''''''''''''''''''''''''''''''''''
 
 DAT
 	org	0
