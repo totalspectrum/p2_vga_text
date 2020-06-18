@@ -36,8 +36,8 @@ democolors
 
 OBJ
 '   scrn: "vgatext_640x480.spin2"
-   scrn: "vgatext_800x600.spin2"
-'   scrn: "vgatext_1024x768.spin2"
+'   scrn: "vgatext_800x600.spin2"
+   scrn: "vgatext_1024x768.spin2"
    ser: "spin/SmartSerial"
    
 PUB demo | x, y, fgcol, bgcol, ch, grey, col1, col2, idx
@@ -63,7 +63,7 @@ PUB demo | x, y, fgcol, bgcol, ch, grey, col1, col2, idx
 	  col2 := democolors[idx+1]
 	  fgcol := colorblend(col1, col2, (grey<<4) + grey)
           scrn.glyphat(x, y, ch++, fixupcol(fgcol), fixupcol(bgcol), $20)
-    pausems(10000)
+    waitms(10000)
     runtext
 
 PUB colorblend(a, b, mix)
@@ -98,5 +98,5 @@ PUB runtext | n
     scrn.str(string(27, "[0mEffects off "))
     scrn.dec(n)
     n++
-    pausems(100)
+    waitms(100)
     
