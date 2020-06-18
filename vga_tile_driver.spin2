@@ -5,9 +5,12 @@
 
 Runs in its own COG. See README.txt for theory of operation.
 
-Two variants are provided: an 8 bit palette version and a 32 bit
-full color. To select the 8 bit version pass "4" (4 bytes per pixel)
-for the bytes_per_char parameter; for 32 bit pass "8"
+Four variants are provided:
+
+8 bytes/char: uses full 24 bit color with all effects available
+4 bytes/char: uses 8bpp for foreground and background, all effects available
+2 bytes/char: uses 16 colors (4bpp) with blinking effect
+1 byte/char:  only allows 128 characters, 1 bit for blinking, no colors
 
 Methods:
 
@@ -35,8 +38,10 @@ start(params)
 CON
   intensity = 80    '0..128
 
-  LINE_HANDLER = $1c0  ' location of pixel subroutine in COG memory
-  LINE_HANDLER_END = $1f0
+  FIELD_HANDLER = $300  ' location of pixel subroutine in LUT memory
+  FIELD_HANDLER_END = $3a0
+  LINE_HANDLER = $3a0
+  LINE_HANDLER_END = $3ff
   
 DAT     
         org 0
@@ -162,98 +167,27 @@ cmodval
         wrpin   dacmode_c,basepin_val
 	dirh	basepin_val
 
+	' save original ptrb
+	mov	pb, ptrb
+	
 	' load different routines into upper LUT depending on the bytes per char
 	' 8, 4, 2, or 1
 	' ptrb still points at @entry; make it point to the code we want to load
 	'
 	encod	bytes_per_char, bytes_per_char		' convert 1, 2, 4, 8 to 0, 1, 2, 3
 	alts	bytes_per_char, #line_offset_table	' look up in line_offset_table
-	add	ptrb, 0-0				' the offset we want for the code to load
+	add	pb, 0-0				' the offset we want for the code to load
 
-	' now load the code into LUT
-	setq	#(LINE_HANDLER_END-LINE_HANDLER)-1
-	rdlong	LINE_HANDLER, ptrb
-	
-'
-'
-' Field loop
-'
-field   
-	mov     y,vfront_porch           'top blanks
-        call    #blank
-	mov	buffer_ptr, buffer_base
-	mov	font_ptr, font_base
-	mov	font_line_counter, font_height
-	add	field_count, #1
-	test	field_count, #32 wz
-  if_z	mov	field_effects, #$ff
-  if_nz mov	field_effects, #$0f
-  
-        mov     y,vpixels          'set visible line
-line    
-        call    #hsync          'do horizontal sync; also loads up next font line
+	' now load the line code into LUT
+	setq2	#(LINE_HANDLER_END-LINE_HANDLER)-1
+	rdlong	(LINE_HANDLER & $1ff), pb
 
-	' now read the character data
-	' this is stored as 8 byte per character;
-	' two longs, first containing 24 bit color + character glyph,
-        ' second containing the 24 bit color and a reserved field
-	rdfast stride_chunks, buffer_ptr
+	' and load the field code into LUT
+	add	ptrb, ##(@field_entry - @entry)
+	setq2   #(FIELD_HANDLER_END-FIELD_HANDLER)-1
+	rdlong	(FIELD_HANDLER&$1ff),ptrb
 
-	sub	font_line_counter, #1 wz
-if_z	mov	font_line_counter, font_height
-if_z	mov	font_ptr, font_base
-if_z	add	buffer_ptr, stride ' next line
-
-	'' check for effects on this line
-	mov	line_effects, #$91
-	cmp	font_line_counter, #1 wz
-if_z	or	line_effects, #$22
-	cmp	font_line_counter, strikethru_line wz
-if_z    or	line_effects, #$44
-
-	'' turn off blink specific stuff
-	and	line_effects, field_effects
-
-	''
-	'' the main loop processes 2 characters (16 pixels) at a time,
-	'' ping-ponging between even and odd
-	''
-	' we use LUT elements 0,1 and 32,33 to hold the colors, ping-ponging back
-	' between them
-	' we have to use 32,33 because the granularity of changing the streamer
-	' LUT pointer is 5 bits
-	call	#\LINE_HANDLER 	 ' call the pixel loop
-	djnz	y, #line
-
-end_of_line
-        mov	y,vback_porch           'bottom blanks
-        call    #blank
-
-        drvnot  vsync_val          'sync on
-
-        mov 	y,vsync_pulse            'sync blanks
-        call    #blank
-
-        drvnot  vsync_val          'sync off
-
-        jmp     #field                  'loop
-
-	
-'
-'
-' Subroutines
-'
-blank       call    #hsync          'blank lines
-            xcont   m_vi,#0
-    _ret_   djnz    y,#blank
-
-hsync       xcont   m_bs,#0         'horizontal sync
-            xcont   m_sn,#1
-	xcont m_bv, #0
-	setq	#63		' read 64 longs = 256 bytes from font table
-	rdlong	font_line, font_ptr
-  _ret_	add	font_ptr, #256
-
+	jmp	#\FIELD_HANDLER
 '
 '
 ' Initialized data
@@ -325,8 +259,8 @@ color_palette
 	long	$a8a8a800, $b2b2b200, $bcbcbc00, $c6c6c600, $d0d0d000, $dadada00, $e4e4e400, $eeeeee00
 
 
-' space for 256 bytes of font data
-font_line long 0[64]
+' space for 256 bytes of font data (256 characters * 1 byte/char)
+font_line byte 0[256]
 
 ' table of offsets to the character handling subroutines
 line_offset_table
@@ -335,9 +269,91 @@ line_offset_table
 	long	@char4_loop - @entry
 	long	@char8_loop - @entry
 
-	orgf	LINE_HANDLER
+	fit	$1f0
 
-	fit	LINE_HANDLER_END
+	org	FIELD_HANDLER
+'
+'
+' Field loop
+'
+field_entry
+	mov     y,vfront_porch           'top blanks
+        call    #blank
+	mov	buffer_ptr, buffer_base
+	mov	font_ptr, font_base
+	mov	font_line_counter, font_height
+	add	field_count, #1
+	test	field_count, #32 wz
+  if_z	mov	field_effects, #$ff
+  if_nz mov	field_effects, #$0f
+  
+        mov     y,vpixels          'set visible line
+line    
+        call    #hsync          'do horizontal sync; also loads up next font line
+
+	' now read the character data
+	' this is stored as 8 byte per character;
+	' two longs, first containing 24 bit color + character glyph,
+        ' second containing the 24 bit color and a reserved field
+	rdfast stride_chunks, buffer_ptr
+
+	sub	font_line_counter, #1 wz
+if_z	mov	font_line_counter, font_height
+if_z	mov	font_ptr, font_base
+if_z	add	buffer_ptr, stride ' next line
+
+	'' check for effects on this line
+	mov	line_effects, #$91
+	cmp	font_line_counter, #1 wz
+if_z	or	line_effects, #$22
+	cmp	font_line_counter, strikethru_line wz
+if_z    or	line_effects, #$44
+
+	'' turn off blink specific stuff
+	and	line_effects, field_effects
+
+	''
+	'' the main loop processes 2 characters (16 pixels) at a time,
+	'' ping-ponging between even and odd
+	''
+	' we use LUT elements 0,1 and 32,33 to hold the colors, ping-ponging back
+	' between them
+	' we have to use 32,33 because the granularity of changing the streamer
+	' LUT pointer is 5 bits
+	call	#\LINE_HANDLER 	 ' call the pixel loop
+	djnz	y, #line
+
+end_of_line
+        mov	y,vback_porch           'bottom blanks
+        call    #blank
+
+        drvnot  vsync_val          'sync on
+
+        mov 	y,vsync_pulse      'sync blanks
+        call    #blank
+
+        drvnot  vsync_val          'sync off
+
+        jmp     #field_entry       'loop
+
+	
+'
+'
+' Subroutines
+'
+blank       call    #hsync          'blank lines
+            xcont   m_vi,#0
+    _ret_   djnz    y,#blank
+
+hsync       xcont   m_bs,#0         'horizontal sync
+            xcont   m_sn,#1
+	xcont m_bv, #0
+	setq	#63		' read 64 longs = 256 bytes from font table
+	rdlong	font_line, font_ptr
+  _ret_	add	font_ptr, #256
+
+
+  	fit	FIELD_HANDLER_END
 	
 ''''''''''''''''''''''''''''''''''''''''''''''''''
 '' LUT subroutines
