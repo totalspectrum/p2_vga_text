@@ -95,6 +95,7 @@ void main()
     }
     starline();
     center("Hello, world!");
+    printf("done\n");
     for(;;)
         ;
 }
