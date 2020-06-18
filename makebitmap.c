@@ -241,8 +241,8 @@ void Process(FILE *in, FILE *out)
                 mask = mask >> 1;
             }
             if (FONT_WIDTH == 16) {
-                fputc( (r>>8) & 0xff, out);
                 fputc( r & 0xff, out );
+                fputc( (r>>8) & 0xff, out);
             } else {
                 fputc(r, out);
             }
