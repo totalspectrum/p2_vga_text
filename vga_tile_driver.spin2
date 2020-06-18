@@ -117,6 +117,14 @@ x
 y
         mul     vpixels, font_height
 
+font_line_cnt
+	' check font width; handle 8 (default) or 16
+	cmp	font_width, #16 wz
+if_z	shl	font_line_bytes, #1
+	mov	font_line_cnt, font_line_bytes
+	shr	font_line_cnt, #2	' convert to longs
+	sub	font_line_cnt, #1
+	
 	' copy parameters into settings
 curchar
 	add	m_rf_even, font_width
@@ -222,6 +230,9 @@ field_effects   long 0
 
 ' count of elapsed fields, used for blinking
 field_count	long	0
+
+' number of bytes in a font line (256 for 8 bit wide font)
+font_line_bytes  long 256
 
 	     ' standard ANSI 256 color palette
 color_palette
@@ -348,9 +359,10 @@ blank       call    #hsync          'blank lines
 hsync       xcont   m_bs,#0         'horizontal sync
             xcont   m_sn,#1
 	xcont m_bv, #0
-	setq	#63		' read 64 longs = 256 bytes from font table
+	'setq	#63		' read 64 longs = 256 bytes from font table
+	setq	font_line_cnt	' read data from font table
 	rdlong	font_line, font_ptr
-  _ret_	add	font_ptr, #256
+  _ret_	add	font_ptr, font_line_bytes
 
 
   	fit	FIELD_HANDLER_END
