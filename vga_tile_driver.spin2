@@ -272,8 +272,8 @@ color_palette
 	long	$a8a8a800, $b2b2b200, $bcbcbc00, $c6c6c600, $d0d0d000, $dadada00, $e4e4e400, $eeeeee00
 
 
-' space for 256 bytes of font data (256 characters * 1 byte/char)
-font_line byte 0[256]
+' space for 256 bytes of font data (256 characters * 2 byte/char)
+font_line byte 0[512]
 
 ' table of offsets to the character handling subroutines
 line_offset_table

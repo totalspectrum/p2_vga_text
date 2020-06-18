@@ -25,7 +25,7 @@ vgatile.zip: README.txt Makefile $(FONTS) $(DRIVERS) $(DEMOS) makebitmap.c vga.m
 %.bdf: %.pcf
 	pcf2bdf -o $@ $<
 
-demo.binary: demo.spin2 vgatext_800x600.spin2 vga_tile_driver.spin2 vga_text_routines.spinh std_text_routines.spinh
+demo.binary: demo.spin2 $(DRIVERS)
 	$(FASTSPIN) -2 -o demo.binary demo.spin2
 basdemo.binary: basdemo.bas vgatext_800x600.spin2 vga_tile_driver.spin2 vga_text_routines.spinh std_text_routines.spinh
 	$(FASTSPIN) -2 -o basdemo.binary basdemo.bas

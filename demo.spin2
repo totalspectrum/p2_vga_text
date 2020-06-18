@@ -64,7 +64,7 @@ PUB demo | x, y, fgcol, bgcol, ch, grey, col1, col2, idx
 	  col2 := democolors[idx+1]
 	  fgcol := colorblend(col1, col2, (grey<<4) + grey)
           scrn.glyphat(x, y, ch++, fixupcol(fgcol), fixupcol(bgcol), $20)
-    waitms(10000)
+    waitms(20000)
     runtext
 
 PUB colorblend(a, b, mix)
@@ -99,5 +99,5 @@ PUB runtext | n
     scrn.str(string(27, "[0mEffects off "))
     scrn.dec(n)
     n++
-    waitms(100)
+    waitms(1000)
     
