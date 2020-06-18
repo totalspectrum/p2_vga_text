@@ -56,9 +56,9 @@ VAR
   byte saved_cursor_data
   byte cursor_mask
   
-PRI init_terminal
-  reset_graphics_state
-  cls
+PRI init_terminal()
+  reset_graphics_state()
+  cls()
   cursor_visible := 0
   cursor_enabled := 1
   if CELL_SIZE => 4
@@ -72,7 +72,7 @@ PRI init_terminal
   scroll_first := 0
   scroll_last:= ROWS-1
 
-PRI reset_graphics_state
+PRI reset_graphics_state()
   bgcolor := 0
   fgcolor := (CELL_SIZE == 8) ? $FFFFFF00 : 7
   char_effects := 0
@@ -83,7 +83,7 @@ PRI copy_line(dest, src) | linelen
   src := @screen_buffer + src*linelen
   bytemove(dest, src, linelen)
   
-PRI scroll_up | last, i
+PRI scroll_up() | last, i
   i := scroll_first
   last := scroll_last
   repeat while i < last
@@ -91,7 +91,7 @@ PRI scroll_up | last, i
     i := i+1
   clear(COLS*last, COLS*(last+1) - 1)
   
-PRI scroll_down | first, i
+PRI scroll_down() | first, i
   i := scroll_last
   first := scroll_first
   repeat while i > first
@@ -99,14 +99,14 @@ PRI scroll_down | first, i
     i := i-1
   clear(COLS*first, COLS*(first+1)-1)
 
-PRI BOUND(low, x, high)
+PRI BOUND(low, x, high) : r
   return (low #> x) <# high
   
 PUB set_position(x, y)
   curx := BOUND(0, x, COLS-1)
   cury := BOUND(0, y, ROWS-1)
   
-PUB tx(c) | fg, bg
+PUB tx(c) : r | fg, bg
    concealCursor
    if (state == STATE_NORMAL)
       if (c == 8) ' backspace
@@ -154,21 +154,21 @@ PRI handle_esc(c) | i
     state := STATE_START_CSI
   elseif (c == "D")
     if cury == scroll_last
-      scroll_up
+      scroll_up()
     else
       cury++
   elseif (c == "M")
     if cury == scroll_first
-      scroll_down
+      scroll_down()
     else
       --cury
   elseif (c == "c")
-    init_terminal
+    init_terminal()
   else
     state := STATE_NORMAL
 
-PRI defaultval(arg, v)
-  return (arg) ? arg : v
+PRI defaultval(arg, v) : r
+  r := (arg) ? arg : v
 
 ' first character of control sequence
 ' if it is '?' it's a private control sequence
@@ -280,7 +280,7 @@ PUB glyphat(x, y, ch, fgcol, bgcol, effect=0) | bufptr
   else
      byte[bufptr] := ch & $ff
      
-PRI setCursorVisible(yesno) | bufptr, x, y
+PRI setCursorVisible(yesno) : oldstate | bufptr, x, y
   if cursor_visible == yesno
     return yesno
 
@@ -318,22 +318,22 @@ PRI setCursorVisible(yesno) | bufptr, x, y
   ' return old cursor state
   return (yesno) ? 0 : 1
 
-PRI concealCursor
+PRI concealCursor()
   setCursorVisible(0)
 
-PRI revealCursor
+PRI revealCursor()
   setCursorVisible(cursor_enabled)
   
 '' globals: force cursor on or off
-PUB showCursor
+PUB showCursor()
   cursor_enabled := 1
   setCursorVisible(cursor_enabled)
   
-PUB hideCursor
+PUB hideCursor()
   cursor_enabled := 0
   setCursorVisible(0)
 
-PUB cls
+PUB cls()
    clear(0, COLS*ROWS-1)
 
 ' clear from position a to position b (inclusive)
@@ -419,7 +419,7 @@ PRI set_graphic_rendition(i) | code
 }}
   case code
     0:
-      reset_graphics_state
+      reset_graphics_state()
     1:
       char_effects |= CHAR_BOLD
     4:

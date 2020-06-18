@@ -36,7 +36,7 @@ VAR
 OBJ
     vga: "vga_tile_driver.spin2"
 
-PUB start(pinbase) | i, pclkscale, pclk, sysclk, x
+PUB start(pinbase) : x | i, pclkscale, pclk, sysclk
   ' calculate clock frequency
   pclk := pixel_clock_freq ' pixel clock
   sysclk := clkfreq  ' system clock
@@ -63,11 +63,11 @@ PUB start(pinbase) | i, pclkscale, pclk, sysclk, x
   params[i++] := CELL_SIZE
   
   x := vga.start(@params)
-  init_terminal
+  init_terminal()
   return x
   
-PUB stop
-  vga.stop
+PUB stop()
+  vga.stop()
 
 #include "vga_text_routines.spinh"
 #include "std_text_routines.spinh"
