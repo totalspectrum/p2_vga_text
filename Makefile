@@ -7,7 +7,7 @@ default:
 
 zip: vgatile.zip
 
-FONTS=unscii-16.bin unscii-16.bdf unscii-8.bin unscii-8.bdf unscii-8-fantasy.bin unscii-8-fantasy.bdf unscii-8-thin.bin unscii-8-thin.bdf spleen-16x32.bdf
+FONTS=unscii-16.bin unscii-16.bdf unscii-8.bin unscii-8.bdf unscii-8-fantasy.bin unscii-8-fantasy.bdf unscii-8-thin.bin unscii-8-thin.bdf spleen-16x32.bin spleen-16x32.bdf
 
 CDRIVER=ccode/Makefile ccode/vgatext.c ccode/vgatext.h ccode/vga_tile_driver.c ccode/vga_tile_driver.h
 
