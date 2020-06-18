@@ -113,7 +113,7 @@ InitMapping(FILE *mapf)
 
 int FONT_HEIGHT = 0;
 int FONT_WIDTH = 8;
-unsigned char fontdata[MAXGLYPH][MAX_LINE];
+unsigned short fontdata[MAXGLYPH][MAX_LINE];
 
 #define LINELEN 256
 char buf[LINELEN];
@@ -184,12 +184,23 @@ void Process(FILE *in, FILE *out)
             }
             continue;
         }
-            
-        if (0 != strncmp(p, "STARTCHAR U+", strlen("STARTCHAR U+"))) {
+
+        if (0 != strncmp(p, "STARTCHAR ", strlen("STARTCHAR "))) {
             continue;
         }
-        p += strlen("STARTCHAR U+");
-        codepoint = strtoul(p, NULL, 16);
+        if (0 == strncmp(p, "STARTCHAR U+", strlen("STARTCHAR U+"))) {
+            p += strlen("STARTCHAR U+");
+            codepoint = strtoul(p, NULL, 16);
+        } else {
+            // look for ENCODING line following
+            p = fgets(buf, LINELEN-1, in);
+            if (!p || 0 != strncmp(p, "ENCODING ", strlen("ENCODING "))) {
+                fprintf(stderr, "ERROR: unable to find ENCODING");
+                exit(2);
+            }
+            p += strlen("ENCODING ");
+            codepoint = strtoul(p, NULL, 0);
+        }
 //        fprintf(stderr, "process code point %x [%s]\n", codepoint, p);
         glyph = mapping_table[codepoint];
         if (glyph >= 0 && glyph < MAXGLYPH) {
@@ -198,14 +209,14 @@ void Process(FILE *in, FILE *out)
         }
     }
 
-#if 0
+#ifdef DEBUG
     // debug code
     printf("bitmap data:\n");
     for (j = 0; j < FONT_HEIGHT; j++) {
 //        for (i = 0; i < MAXGLYPH; i++) {
         for (i = 'c'; i < 'k'; i++) {
             unsigned c = fontdata[i][j];
-            for (k = 7; k >= 0; --k) {
+            for (k = FONT_WIDTH-1; k >= 0; --k) {
                 int h = '.';
                 if (c & (1<<k)) {
                     h = '*';
@@ -229,7 +240,12 @@ void Process(FILE *in, FILE *out)
                 }
                 mask = mask >> 1;
             }
-            fputc(r, out);
+            if (FONT_WIDTH == 16) {
+                fputc( (r>>8) & 0xff, out);
+                fputc( r & 0xff, out );
+            } else {
+                fputc(r, out);
+            }
         }
     }
 }

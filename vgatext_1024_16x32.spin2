@@ -6,9 +6,10 @@
 CON
   pixel_clock_freq = 65_000_000
 
-  COLS = 128
-  ROWS = 48
-  FONT_HEIGHT = 16
+  ROWS = 24
+  FONT_WIDTH = 16
+  COLS = 1024 / FONT_WIDTH
+  FONT_HEIGHT = 32
   CELL_SIZE = 8  ' bytes per character: use 4 for 8bpp colors, 8 for 24bpp colors
 	
 DAT
@@ -18,8 +19,7 @@ DAT
 '
 	long
 fontdata
-	file "unscii-16.bin"
-'	file "unscii-8-fantasy.bin"
+	file "spleen-16x32.bin"
 
 '=================================================================================================================
 ' BELOW HERE IS THE DEMO CODE
@@ -50,7 +50,7 @@ PUB start(pinbase) | i, pclkscale, pclk, sysclk, x
   params[i++] := COLS           ' screen columns
   params[i++] := ROWS           ' screen rows
   params[i++] := @fontdata	' font data
-  params[i++] := 8		' font width
+  params[i++] := FONT_WIDTH	' font width
   params[i++] := FONT_HEIGHT    ' font height
   params[i++] := pclkscale 'fset           ' pixel clock scaling value
   params[i++] := 24             ' horizontal front porch
