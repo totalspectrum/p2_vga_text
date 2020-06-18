@@ -266,6 +266,10 @@ int main(int argc, char **argv)
         exit(2);
     }
     inname = argv[1];
+    // if the file is named foo-16xN then it is 16 wide
+    if (strstr(inname, "-16x")) {
+        FONT_WIDTH = 16;
+    }
     inf = fopen(inname, "r"); // .bdf is a text format
     if (!inf) {
         perror(inname);
