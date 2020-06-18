@@ -282,9 +282,9 @@ line_offset_table
 	long	@char4_loop - @entry
 	long	@char8_loop - @entry
 	
-	long	@word8_loop - @entry
-	long	@word8_loop - @entry
-	long	@word8_loop - @entry
+	long	@word1_loop - @entry
+	long	@word2_loop - @entry
+	long	@word4_loop - @entry
 	long	@word8_loop - @entry
 
 mask_ffff
@@ -686,6 +686,176 @@ next_32bppword
 end_32bppword
 	ret
 
+	fit	LINE_HANDLER_END
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+	'' 4 bytes/char
+	'' 30 instructions
+	
+	org	LINE_HANDLER
+word4_loop
+	rep	@end_8bppword, char_cnt
+next_8bppword
+	'' even character
+	rfbyte	fgcolor
+	rfbyte	bgcolor
+	rfbyte	curchar
+	rfbyte	cureff wc
+
+	' do table lookup on colors
+	alts	fgcolor, #color_Palette
+	mov	fgcolor, 0-0
+	alts	bgcolor, #color_Palette
+	mov	bgcolor, 0-0
+	
+	altgw	curchar, #font_line	' fetch from font table
+	getword	curchar
+	and	cureff, line_effects wz	
+
+	
+  if_nz	muxnc	curchar, mask_ffff		' if effect mask active add a line
+	xcont	m_rf_even, curchar
+	wrlut	bgcolor, #0
+	wrlut	fgcolor, #1
+
+	'' odd character
+	rfbyte	fgcolor
+	rfbyte	bgcolor
+	rfbyte	curchar
+	rfbyte	cureff wc
+
+	' do table lookup on colors
+	alts	fgcolor, #color_Palette
+	mov	fgcolor, 0-0
+	alts	bgcolor, #color_Palette
+	mov	bgcolor, 0-0
+	
+	altgw	curchar, #font_line	' fetch from font table
+	getword	curchar
+	and	cureff, line_effects wz	
+'	test	cureff, #$80 wc
+	
+  if_nz muxnc	curchar, mask_ffff	' if effect mask active add a line
+	xcont	m_rf_odd, curchar
+	wrlut	bgcolor, #32
+	wrlut	fgcolor, #33
+	
+	'' 
+	'' end of loop
+end_8bppword
+	ret
+	fit	LINE_HANDLER_END
+
+	''''''''''''''''''''''''''''''''''''''''''''''''''
+	' 2 bytes/char
+	' this consists of an 8 bit character followed by
+	' 8 bit effects; 1 bit blink, 3 bits bg color, 4 bits fg color
+	'
+	' 30 instructions
+	org	LINE_HANDLER
+word2_loop
+	and	line_effects, #$80
+	rep	@end_word16, char_cnt
+next_word16
+
+
+	'' even character
+	rfbyte	curchar
+	rfbyte	cureff wc
+	getnib	fgcolor, cureff, #0
+	getnib	bgcolor, cureff, #1
+	
+	' do table lookup on colors
+	alts	fgcolor, #color_Palette
+	mov	fgcolor, 0-0
+	alts	bgcolor, #color_Palette
+	mov	bgcolor, 0-0
+	
+	altgw	curchar, #font_line	' fetch from font table
+	getword	curchar
+	test	cureff, line_effects wz
+  if_nz	xor curchar, mask_ffff		' if effect mask active add a line
+  
+	xcont	m_rf_even, curchar
+	wrlut	bgcolor, #0
+	wrlut	fgcolor, #1
+
+	'' odd character
+	rfbyte	curchar
+	rfbyte	cureff wc
+	getnib	fgcolor, cureff, #0
+	getnib	bgcolor, cureff, #1
+	
+	' do table lookup on colors
+	alts	fgcolor, #color_Palette
+	mov	fgcolor, 0-0
+	alts	bgcolor, #color_Palette
+	mov	bgcolor, 0-0
+	
+	altgw	curchar, #font_line	' fetch from font table
+	getword	curchar
+	test	cureff, line_effects wz
+  if_nz	xor curchar, mask_ffff		' if effect mask active add a line
+  
+	xcont	m_rf_odd, curchar
+	wrlut	bgcolor, #32
+	wrlut	fgcolor, #33
+	
+	'' 
+	'' end of loop
+end_word16
+	ret
+	fit	LINE_HANDLER_END
+
+
+	''''''''''''''''''''''''''''''''''''''''''''''''''
+	' 1 bytes/char
+	' this consists of an 7 bit character; the high bit is
+	' used for blinking
+	'
+	' 16 instructions
+	org	LINE_HANDLER
+word1_loop
+	mov	fgcolor, color_Palette+7
+	mov	bgcolor, color_Palette
+	wrlut	bgcolor, #0
+	wrlut	fgcolor, #1
+	wrlut	bgcolor, #32
+	wrlut	fgcolor, #33
+	and	line_effects, #$80
+	
+	rep	@end_word8, char_cnt
+next_word8
+
+
+	'' even character
+	rfbyte	curchar
+	mov	cureff, curchar
+	and	curchar, #$7f
+	and	cureff, line_effects wz
+	
+	altgw	curchar, #font_line	' fetch from font table
+	getword	curchar
+	
+  if_nz	xor curchar, mask_ffff		' if effect mask active add a line
+	xcont	m_rf_even, curchar
+
+	'' odd character
+	rfbyte	curchar
+	mov	cureff, curchar
+	and	curchar, #$7f
+	and	cureff, line_effects wz
+	
+	altgw	curchar, #font_line	' fetch from font table
+	getword	curchar
+	
+  if_nz	xor curchar, mask_ffff		' if effect mask active add a line
+	xcont	m_rf_odd, curchar
+	
+	'' 
+	'' end of loop
+end_word8
+	ret
 	fit	LINE_HANDLER_END
 
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
