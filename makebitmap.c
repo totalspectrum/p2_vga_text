@@ -112,6 +112,7 @@ InitMapping(FILE *mapf)
 }
 
 int FONT_HEIGHT = 0;
+int FONT_WIDTH = 8;
 unsigned char fontdata[MAXGLYPH][MAX_LINE];
 
 #define LINELEN 256
@@ -130,7 +131,7 @@ char * ProcessChar(unsigned glyphnum, unsigned codepoint, FILE *in)
         }
         if (!strncmp(p, "BBX ", 4)) {
             sscanf(p+4, "%d %d %d %d", &w, &h, &x, &y);
-            if (w > 8) {
+            if (w > FONT_WIDTH) {
                 fprintf(stderr, "bounding box too wide  for U+%04x\n", codepoint);
                 exit(1);
             }
@@ -220,9 +221,9 @@ void Process(FILE *in, FILE *out)
         for (i = 0; i < MAXGLYPH; i++) {
             unsigned c = fontdata[i][j];
             unsigned r = 0;
-            unsigned mask = 0x80;
+            unsigned mask = 1 << FONT_WIDTH-1;
             // get bits in little endian order
-            for (k = 0; k < 8; k++) {
+            for (k = 0; k < FONT_WIDTH; k++) {
                 if (c & (1<<k)) {
                     r = r | mask;
                 }
@@ -239,9 +240,13 @@ int main(int argc, char **argv)
     char *inname;
     char *outname;
     int len;
-    
+
+    if (argc > 2 && !strcmp(argv[1], "-16")) {
+        FONT_WIDTH = 16;
+        --argc; ++argv;
+    }
     if (argc != 2 && argc != 3) {
-        fprintf(stderr, "Usage: makebitmap font.bdf [map table]\n");
+        fprintf(stderr, "Usage: makebitmap [-16] font.bdf [map table]\n");
         exit(2);
     }
     inname = argv[1];
