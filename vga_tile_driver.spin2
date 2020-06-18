@@ -890,11 +890,11 @@ VAR
   long mycog
   long hw_rev
   
-PUB start(params) | ptr, tmp
+PUB start(params) : tmp | ptr
 
   ' check what kind of hardware we are using
   if hw_rev == 0
-      hw_rev := check_hw_rev
+      hw_rev := check_hw_rev()
 
   if hw_rev == 1
       ' RevA (old) silicon
@@ -920,7 +920,7 @@ PUB start(params) | ptr, tmp
       long[ptr][0] := $0f000000 ' even characters
       long[ptr][1] := $0f010000 ' odd characters
 
-  mycog := cognew(@entry, params) + 1
+  mycog := coginit(16, @entry, params) + 1
   return mycog
 
 '
@@ -930,13 +930,13 @@ PUB start(params) | ptr, tmp
 ' ptra++ is applied the appropriate number of times in rev 2 silicon
 '
 
-PRI check_hw_rev | tmp
+PRI check_hw_rev() : tmp
   tmp := 0
-  cognew(@hwcheck, @tmp)
+  coginit(16, @hwcheck, @tmp)
   repeat while tmp == 0
   return tmp
   
-PUB stop
+PUB stop()
   if mycog
     cogstop(mycog-1)
     mycog := 0
@@ -952,7 +952,7 @@ PUB stop
 '
 CON PIXSHIFT = 31
 
-PUB calcscale(a, b) | shiftcnt
+PUB calcscale(a, b) : shiftcnt
   shiftcnt := PIXSHIFT
   ' remove factors of 5 (will be pretty common)
   repeat while 0 == (a // 5) and 0 == (b // 5)
@@ -966,4 +966,4 @@ PUB calcscale(a, b) | shiftcnt
   repeat while ((b & 1) == 0) and shiftcnt > 0
     b := b>>1
     shiftcnt--
-  return (a / b) << shiftcnt
+  shiftcnt := (a / b) << shiftcnt
