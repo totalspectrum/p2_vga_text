@@ -3,6 +3,7 @@ VGA TILE DRIVER
 This is a simple VGA tile driver that supports standard ANSI escape
 codes. It's still a work in progress.
 
+- Revision 0.8: Allow for 16 pixel wide fonts
 - Revision 0.7: Added 2 byte/char and 1 byte/char modes
 - Revision 0.6: Made C drivers work with riscvp2 and Catalina, and
 added support for new hardware
@@ -31,8 +32,9 @@ There are a number of sample drivers:
 
 vgatext_640x480.spin2 is the 640x480 version, supporting 80x30 characters
 vgatext_800x600.spin2 is the 800x600 version, supporting 100x40 characters
-vgatext_1024x768.spin2 is the 1024x768 version, supporting 128x48
-characters
+vgatext_1024x768.spin2 is the 1024x768 version, supporting 128x48 characters
+vgatext_1024_16x32.spin2 is the 1024x768 version, supporting 64x24
+   characters that are 16x32
 
 All of these basically just define some constants, set up the font to
 use, and then include the vga_text_routines.spinh to provide the
@@ -43,10 +45,10 @@ code (usable with most P2 C compilers), and a simple C example.
 
 Operation
 ---------
-Tiles must always be 8 pixels wide. Theoretically they can be any
+Tiles must always be either 8 or 16 pixels wide. Theoretically they can be any
 height, but the demos use 16 pixels (15 for the 800x600, which is
 achieved by just ignoring the first row of an 8x16 font). There are
-some 8x8 fonts provided too.
+some 8x8 fonts provided too, and a 16x32 font.
 
 The character data is ROWS*COLS*CELL_SIZE bytes long. CELL_SIZE is
 the number of bytes each character takes, and may be either 1, 2, 4 or 8.
@@ -86,7 +88,7 @@ order:
     number of columns (e.g. 80 or 100)
     number of rows (e.g. 30 or 40)
     font data address
-    width of font (must be 8)
+    width of font (must be 8 or 16)
     height of font
     clock scaling factor (see below)
     horizontal front porch, pixels
@@ -121,8 +123,8 @@ can change the color every pixel.
 
 FONT
 ----
-The font is an 8xN bitmap, but it's laid out a bit differently from most
-fonts:
+The font is an 8xN or 16xN bitmap, but it's laid out a bit differently
+from most fonts:
 
 (1) The characters are all placed in one row in the bitmap; that is,
 byte 0 is the first row of character 0, byte 1 is the first row of
@@ -137,8 +139,8 @@ individual characters are "reversed" from how most fonts store them.
 This is due to the way the streamer works in immediate mode.
 
 There's a C program given here (makebitmap.c) to convert an X window
-system.bdf font to a suitable font.bin file. I've only tried it on the
-unscii font, so caveat emptor. To use it do:
+system .bdf font to a suitable font.bin file. I've only tried it on the
+unscii and spleen fonts, so caveat emptor. To use it do:
 
    gcc -o makebitmap makebitmap.c
    makebitmap unscii-16.bdf vga.map
@@ -152,8 +154,8 @@ out blank. If no .map file is provided (if you just run "makebitmap
 file.bdf") then it'll just use a default mapping where glyphs 0-255
 represent Unicode characters 0-255.
 
-The font provided is unscii, a public domain Unicode font, in several
-variants.
+The fonts provided are unscii, a public domain Unicode font (in several
+variants) and spleen-16x32, a BSD licensed 16x32 font.
 
 CREDITS
 -------
@@ -161,6 +163,8 @@ The VGA code itself is heavily based on earlier P2 work by Rayman and
 Cluso99, and of course Chip's original VGA driver.
 
 The unscii font is from http://pelulamu.net/unscii/
+
+The spleen font is from https://github.com/fcambus/spleen/
 
 The ANSI art is Ansi Love by Rad Man, from
 http://sixteencolors.net/pack/blocktronics_blockalypse/rad-LOVE.ANS.
