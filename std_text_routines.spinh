@@ -86,7 +86,7 @@ PUB hex(val, digits) | mask
   num(val, 16, 0, digits)
 
 '' print a newline
-PUB nl
+PUB nl()
   tx(13)
   tx(10)
 
