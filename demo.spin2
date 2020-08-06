@@ -23,10 +23,10 @@ democolors
 
 
 OBJ
-   scrn: "vgatext_640x480"
+'   scrn: "vgatext_640x480"
 '   scrn: "vgatext_800x600"
 '   scrn: "vgatext_1024x768"
-'   scrn: "vgatext_1024_16x32"
+   scrn: "vgatext_1024_16x32"
    ser: "SmartSerial"
    
 PUB demo() | x, y, fgcol, bgcol, ch, grey, col1, col2, idx
@@ -48,8 +48,8 @@ PUB demo() | x, y, fgcol, bgcol, ch, grey, col1, col2, idx
         repeat x from 0 to scrn.COLS-1
           grey := (x & 15)
 	  idx := x / 16
-          col1 := democolors[idx]
-	  col2 := democolors[idx+1]
+          col1 := long[@democolors][idx]
+	  col2 := long[@democolors][idx+1]
 	  fgcol := colorblend(col1, col2, (grey<<4) + grey)
           scrn.glyphat(x, y, ch++, fixupcol(fgcol), fixupcol(bgcol), $20)
     repeat 10
