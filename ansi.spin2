@@ -1,17 +1,17 @@
 ''
-'' clock frequency settings
-'' for 800x600 we use a 40 MHz pixel clock
-'' which x4 gives a 160 MHz system clock
-'' or x5 gives a 200 MHz system clock
-'' those are probably good choices for running
-'' with this
+'' ANSI terminal driver
 ''
+
+'' first, select the desired resolution by uncommenting the appriate timing below
 OBJ
 '  vt: "timing800x600"
-  vt: "timing640x480"
-  
+'  vt: "timing640x480"
+ vt: "timing1024x768"
+
+'' next, select the other parameters like font width and height
+
 CON
-  CELL_SIZE = 4  ' bytes per character: use 4 for 8bpp colors, 8 for 24bpp colors
+  CELL_SIZE = 8  ' bytes per character: use 2 for 4bpp colors, 4 for 8bpp colors, 8 for 24bpp colors
 
   pixel_clock_freq = vt.pixel_clock_freq
   FONT_WIDTH = 8

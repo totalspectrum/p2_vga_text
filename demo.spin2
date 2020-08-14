@@ -13,7 +13,8 @@
 CON
   PINBASE = 48
   _clkfreq = 200_000_000
-
+  '_clkfreq = 195_000_000
+  
 DAT
 
 democolors

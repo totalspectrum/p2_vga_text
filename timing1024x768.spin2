@@ -1,13 +1,13 @@
 {{
   This file contains various constants and utilities for
-  setting up VGA for 640x480
+  setting up VGA for 1024x768
 }}
 
 CON
-  pixel_clock_freq = 25_000_000
-  PIXEL_WIDTH  = 640
-  PIXEL_HEIGHT = 480
-	
+  pixel_clock_freq = 65_000_000
+  PIXEL_WIDTH = 1024
+  PIXEL_HEIGHT = 768
+
 {{
    set up VGA parameters in a parameter block
    p points to the parameter block, which will be
@@ -24,20 +24,19 @@ CON
 
 PUB gettiming(p) | pclkscale, pclk, sysclk
   ' calculate clock frequency
-  pclk := pixel_clock_freq ' pixel clock
+  pclk := pixel_clock_freq
   sysclk := clkfreq  ' system clock
   ' calculate scale := $8000_0000 * pclk / sysclk
-  ' this is equal to pclk / (sysclk / $8000_000)
   pclkscale := calcscale(pclk, sysclk)
 
   long[p][0] := pclkscale      ' pixel clock scaling value
-  long[p][1] := 16             ' horizontal front porch
-  long[p][2] := 96             ' hsync pulse
-  long[p][3] := 48             ' horizontal back porch
-  long[p][4] := 10             ' vertical front porch
-  long[p][5] := 2              ' vertical sync lines
-  long[p][6] := 33             ' vertical back porch
-  long[p][7] := %11            ' vertical/horizontal polarity
+  long[p][1] := 24             ' horizontal front porch
+  long[p][2] := 136            ' hsync pulse
+  long[p][3] := 160             ' horizontal back porch
+  long[p][4] := 3              ' vertical front porch
+  long[p][5] := 6              ' vertical sync lines
+  long[p][6] := 29             ' vertical back porch
+  long[p][7] := %00            ' vertical/horizontal polarity
 
 '
 ' calcscale(a, b)
