@@ -40,7 +40,7 @@ PUB start(pinbase) | i, pclkscale, pclk, sysclk, x, fontptr
 
   fontptr := @fontdata
   if FONT_HEIGHT == 15
-    fontptr += 256 ' skip a row
+    fontptr += 256 * FONT_WIDTH / 8  ' skip a row
 
   i := 0
   params[i++] := pinbase
@@ -48,23 +48,23 @@ PUB start(pinbase) | i, pclkscale, pclk, sysclk, x, fontptr
   params[i++] := COLS           ' screen columns
   params[i++] := ROWS           ' screen rows
   params[i++] := fontptr	' font data: skip first row
-  params[i++] := 8		' font width
+  params[i++] := FONT_WIDTH	' font width
   params[i++] := FONT_HEIGHT    ' font height
-  params[i++] := pclkscale 'fset           ' pixel clock scaling value
-  params[i++] := 40           ' horizontal front porch
-  params[i++] := 128             ' hsync pulse
-  params[i++] := 88        ' horizontal back porch
+  params[i++] := pclkscale 	' pixel clock scaling value
+  params[i++] := 40           	' horizontal front porch
+  params[i++] := 128            ' hsync pulse
+  params[i++] := 88        	' horizontal back porch
   params[i++] := 1              ' vertical front porch
   params[i++] := 4              ' vertical sync lines
   params[i++] := 23             ' vertical back porch
   params[i++] := %00            ' vertical/horizontal polarity
   params[i++] := CELL_SIZE
   x := vga.start(@params)
-  init_terminal
+  init_terminal()
   return x
 
-PUB stop
-  vga.stop
+PUB stop()
+  vga.stop()
   
 #include "vga_text_routines.spinh"
 #include "std_text_routines.spinh"
