@@ -24,9 +24,9 @@ democolors
 
 OBJ
 '   scrn: "vgatext_640x480"
-'   scrn: "vgatext_800x600"
+   scrn: "vgatext_800x600"
 '   scrn: "vgatext_1024x768"
-   scrn: "vgatext_1024_16x32"
+'   scrn: "vgatext_1024_16x32"
    ser: "SmartSerial"
    
 PUB demo() | x, y, fgcol, bgcol, ch, grey, col1, col2, idx
