@@ -4,22 +4,30 @@
 
 '' first, select the desired resolution by uncommenting the appriate timing below
 OBJ
+  vt: "timing640x480"
 '  vt: "timing800x600"
-'  vt: "timing640x480"
- vt: "timing1024x768"
+'  vt: "timing1024x768"
 
 '' next, select the font to use
-'' fnt: "unscii16"  ' 8x16 font
-  fnt: "p1font"   ' 16x32 font
-
-'' next, select the other parameters like font width and height
+'   fnt: "unscii-8"   ' 8x8 font
+   fnt: "unscii-16"  ' 8x16 font
+'   fnt: "p1font"     ' 16x32 font
 
 CON
-  CELL_SIZE = 8  ' bytes per character: use 2 for 4bpp colors, 4 for 8bpp colors, 8 for 24bpp colors
+'' next, select the cell size (bytes needed per character)
+'' NOTE:
+''   not all cell sizes work with all resolutions, because the cell size
+''   determines how complicated the rendering is; full color (CELL_SIZE=8)
+''   is the most forgiving
+
+  CELL_SIZE = 8  ' full color (24 bpp foreground and background, all effects)
+' CELL_SIZE = 4  ' 8bpp fg/bg, all effects
+' CELL_SIZE = 2  ' 4bpp fg/3bpp bg, blink effect
+' CELL_SIZE = 1  ' monochrome only, blink effect
 
   pixel_clock_freq = vt.pixel_clock_freq
   FONT_WIDTH = fnt.FONT_WIDTH
-  FONT_HEIGHT = (vt.PIXEL_HEIGHT==600) ? fnt.FONT_HEIGHT-1 : fnt.FONT_HEIGHT
+  FONT_HEIGHT = ( (vt.PIXEL_HEIGHT//fnt.FONT_WIDTH) <> 0) ? fnt.FONT_HEIGHT-1 : fnt.FONT_HEIGHT
   
   COLS = vt.PIXEL_WIDTH / FONT_WIDTH
   ROWS = vt.PIXEL_HEIGHT / FONT_HEIGHT
