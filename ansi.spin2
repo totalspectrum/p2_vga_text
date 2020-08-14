@@ -8,25 +8,21 @@ OBJ
 '  vt: "timing640x480"
  vt: "timing1024x768"
 
+'' next, select the font to use
+'' fnt: "unscii16"  ' 8x16 font
+  fnt: "p1font"   ' 16x32 font
+
 '' next, select the other parameters like font width and height
 
 CON
   CELL_SIZE = 8  ' bytes per character: use 2 for 4bpp colors, 4 for 8bpp colors, 8 for 24bpp colors
 
   pixel_clock_freq = vt.pixel_clock_freq
-  FONT_WIDTH = 8
-  FONT_HEIGHT = (vt.PIXEL_WIDTH==600) ? 15 : 16
+  FONT_WIDTH = fnt.FONT_WIDTH
+  FONT_HEIGHT = (vt.PIXEL_HEIGHT==600) ? fnt.FONT_HEIGHT-1 : fnt.FONT_HEIGHT
   
   COLS = vt.PIXEL_WIDTH / FONT_WIDTH
   ROWS = vt.PIXEL_HEIGHT / FONT_HEIGHT
-
-DAT
-'
-' font buffer
-'
-	long
-fontdata
-	file "unscii-16.bin"
 
 VAR
     long params[40]
@@ -35,8 +31,8 @@ VAR
 OBJ
     vga: "vga_tile_driver.spin2"
 
-PUB start(pinbase) | x, fontptr
-  fontptr := @fontdata
+PUB start(pinbase) | x, fontptr, fontheight
+  fontptr := fnt.getfont()
   if FONT_HEIGHT == 15
     fontptr += 256 * FONT_WIDTH / 8  ' skip a row
 
