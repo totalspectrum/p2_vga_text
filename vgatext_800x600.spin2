@@ -6,15 +6,18 @@
 '' those are probably good choices for running
 '' with this
 ''
+OBJ
+  vt: "timing800x600"
+  
 CON
+  CELL_SIZE = 4  ' bytes per character: use 4 for 8bpp colors, 8 for 24bpp colors
 
-  pixel_clock_freq = 40_000_000
-
-  COLS = 100   ' (8*100 == 800)
-  ROWS = 40    ' (40*15 == 600)
+  pixel_clock_freq = vt.pixel_clock_freq
   FONT_WIDTH = 8
   FONT_HEIGHT = 15
-  CELL_SIZE = 4  ' bytes per character: use 4 for 8bpp colors, 8 for 24bpp colors
+  
+  COLS = vt.PIXEL_WIDTH / FONT_WIDTH
+  ROWS = vt.PIXEL_HEIGHT / FONT_HEIGHT
 
 DAT
 '
