@@ -12,8 +12,9 @@ CON
 
   COLS = 100   ' (8*100 == 800)
   ROWS = 40    ' (40*15 == 600)
+  FONT_WIDTH = 8
   FONT_HEIGHT = 15
-  CELL_SIZE = 2  ' bytes per character: use 4 for 8bpp colors, 8 for 24bpp colors
+  CELL_SIZE = 4  ' bytes per character: use 4 for 8bpp colors, 8 for 24bpp colors
 
 DAT
 '
