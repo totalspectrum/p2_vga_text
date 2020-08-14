@@ -34,7 +34,7 @@ VAR
 OBJ
     vga: "vga_tile_driver.spin2"
 
-PUB start(pinbase) | i, pclkscale, pclk, sysclk, x, fontptr
+PUB start(pinbase) | pclkscale, pclk, sysclk, x, fontptr
   ' calculate clock frequency
   pclk := pixel_clock_freq
   sysclk := clkfreq  ' system clock
@@ -46,7 +46,6 @@ PUB start(pinbase) | i, pclkscale, pclk, sysclk, x, fontptr
   if FONT_HEIGHT == 15
     fontptr += 256 * FONT_WIDTH / 8  ' skip a row
 
-  i := 0
   params[00] := pinbase
   params[01] := @screen_buffer	' screen buffer
   params[02] := COLS           ' screen columns
@@ -54,6 +53,7 @@ PUB start(pinbase) | i, pclkscale, pclk, sysclk, x, fontptr
   params[04] := fontptr	' font data: skip first row
   params[05] := FONT_WIDTH	' font width
   params[06] := FONT_HEIGHT    ' font height
+{{
   params[07] := pclkscale 	' pixel clock scaling value
   params[08] := 40           	' horizontal front porch
   params[09] := 128            ' hsync pulse
@@ -62,6 +62,8 @@ PUB start(pinbase) | i, pclkscale, pclk, sysclk, x, fontptr
   params[12] := 4              ' vertical sync lines
   params[13] := 23             ' vertical back porch
   params[14] := %00            ' vertical/horizontal polarity
+}}
+  vt.gettiming(@params + 7*4)
   params[15] := CELL_SIZE
   x := vga.start(@params)
   init_terminal()
