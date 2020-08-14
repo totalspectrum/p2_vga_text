@@ -947,23 +947,3 @@ PUB stop()
 '' pixel clock frequency a and system clock frequency b
 ''
 
-'
-' calculate ($8000_0000 * a) / (b)
-'
-CON PIXSHIFT = 31
-
-PUB calcscale(a, b) : shiftcnt
-  shiftcnt := PIXSHIFT
-  ' remove factors of 5 (will be pretty common)
-  repeat while 0 == (a // 5) and 0 == (b // 5)
-    a := a / 5
-    b := b / 5
-
-  ' scale a up as much as we can
-  repeat while ((a & $4000_0000) == 0) and shiftcnt > 0
-    a := a << 1
-    shiftcnt--
-  repeat while ((b & 1) == 0) and shiftcnt > 0
-    b := b>>1
-    shiftcnt--
-  shiftcnt := (a / b) << shiftcnt
