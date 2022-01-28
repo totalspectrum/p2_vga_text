@@ -28,17 +28,9 @@ codes and writing data into memory.
 std_text_routines.spinh are utility functions to provide things like
 printing strings or numbers in hex and decimal.
 
-There are a number of sample drivers:
-
-vgatext_640x480.spin2 is the 640x480 version, supporting 80x30 characters
-vgatext_800x600.spin2 is the 800x600 version, supporting 100x40 characters
-vgatext_1024x768.spin2 is the 1024x768 version, supporting 128x48 characters
-vgatext_1024_16x32.spin2 is the 1024x768 version, supporting 64x24
-   characters that are 16x32
-
-All of these basically just define some constants, set up the font to
-use, and then include the vga_text_routines.spinh to provide the
-actual driver code.
+ansi.spin2 is the main screen driver object. To use it, edit
+ansi.spin2 and select the timing resolution to use, the font
+to use, and the CELL size (bytes used per character). 
 
 In the ccode directory is a Makefile to convert the Spin code to C
 code (usable with most P2 C compilers), and a simple C example.
