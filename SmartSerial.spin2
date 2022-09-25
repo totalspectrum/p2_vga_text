@@ -24,7 +24,7 @@ pub start(rxpin, txpin, mode, baudrate) | bitperiod, bit_mode
   pinf(txpin)
   wrpin(txpin, _txmode)
   wxpin(txpin, bit_mode)
-  pinl(txpin)	' turn smartpin on by making the pin an output
+  pinl(txpin)   ' turn smartpin on by making the pin an output
 
   ' set up the receive pin
   pinf(rxpin)
@@ -101,8 +101,8 @@ PUB Num(val, base, signflag, digitsNeeded) | i, digit, r1, q1
   if (signflag)
       if (val < 0)
         signflag := "-"
-	val := -val
-	
+        val := -val
+        
   '' make sure we will not overflow our buffer
   if (digitsNeeded > 32)
     digitsNeeded := 32
@@ -121,7 +121,7 @@ PUB Num(val, base, signflag, digitsNeeded) | i, digit, r1, q1
       val := 2*(q1 / base)
       if (digit >= base)
         val++
-	digit -= base
+        digit -= base
     else
       digit := val // base
       val := val / base
