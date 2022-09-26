@@ -3,6 +3,8 @@ VGA TILE DRIVER
 This is a simple VGA tile driver that supports standard ANSI escape
 codes. It's still a work in progress.
 
+- Revision 1.1: Some updates for compiler compatibility
+- Revision 1.0: Released to Parallax repo
 - Revision 0.8: Allow for 16 pixel wide fonts
 - Revision 0.7: Added 2 byte/char and 1 byte/char modes
 - Revision 0.6: Made C drivers work with riscvp2 and Catalina, and
