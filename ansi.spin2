@@ -37,9 +37,9 @@ VAR
     byte screen_buffer[COLS*ROWS*CELL_SIZE]
 
 OBJ
-    vga: "vga_tile_driver.spin2"
+    vga: "vga_tile_driver"
 
-PUB start(pinbase) | x, fontptr, fontheight
+PUB start(pinbase) : r | x, fontptr, fontheight
   fontptr := fnt.getfont()
   if FONT_HEIGHT == 15
     fontptr += 256 * FONT_WIDTH / 8  ' skip a row

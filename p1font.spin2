@@ -12,6 +12,5 @@ DAT
 fontdata
   file "P1FONT.fnt"
 
-PUB getfont()
+PUB getfont() : r
   return @fontdata
-
